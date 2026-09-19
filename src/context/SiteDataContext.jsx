@@ -38,6 +38,15 @@ import {
   setAuthToken,
   getAuthToken
 } from '../services/api';
+import {
+  isFirebaseConfigured,
+  getStoredFirebaseConfig,
+  saveFirebaseConfig,
+  initFirebase,
+  saveFirebaseSiteData,
+  subscribeToFirebaseSiteData,
+  testFirebaseConnection
+} from '../services/firebase';
 
 const DEFAULT_GALLERY = [
   {
@@ -91,13 +100,12 @@ const DEFAULT_HERO = {
 
 const SiteDataContext = createContext(null);
 
-// Helpers de almacenamiento local para persistencia inmediata y soporte offline
+// Helpers de almacenamiento local para persistencia inmediata y fallback offline
 const loadLocal = (key, defaultVal) => {
   try {
     const item = localStorage.getItem(`terjamanco_${key}`);
     if (item) {
       const parsed = JSON.parse(item);
-      // Auto-actualizar si tiene la imagen antigua o rota de unsplash
       if (key === 'hero' && parsed && (!parsed.bgImage || parsed.bgImage.includes('unsplash.com'))) {
         parsed.bgImage = "/images/jamanco_hero_cinematic.jpg";
       }
@@ -118,7 +126,7 @@ const saveLocal = (key, val) => {
 };
 
 export function SiteDataProvider({ children }) {
-  // Estado general de datos (inicializado desde localStorage o defaults)
+  // Estado general de datos
   const [info, setInfo] = useState(() => loadLocal('info', DEFAULT_INFO));
   const [hero, setHero] = useState(() => loadLocal('hero', DEFAULT_HERO));
   const [minerals, setMinerals] = useState(() => loadLocal('minerals', DEFAULT_MINERALS));
@@ -131,43 +139,75 @@ export function SiteDataProvider({ children }) {
   const [faqs, setFaqs] = useState(() => loadLocal('faqs', DEFAULT_FAQS));
   const [soundSettings, setSoundSettings] = useState(() => loadLocal('soundSettings', DEFAULT_SOUND_SETTINGS));
 
-  // Estados de control
+  // Estados de control y conectividad
   const [isLoading, setIsLoading] = useState(true);
   const [isServerOnline, setIsServerOnline] = useState(false);
+  const [isFirebaseOnline, setIsFirebaseOnline] = useState(() => isFirebaseConfigured());
   const [lastSync, setLastSync] = useState(null);
 
   // Estados de autenticación de admin
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
 
-  // Cargar datos desde el Backend API
+  // Aplicar datos entrantes de forma atómica
+  const applyIncomingData = useCallback((data) => {
+    if (!data) return;
+    if (data.info) { setInfo(data.info); saveLocal('info', data.info); }
+    if (data.hero) { setHero(data.hero); saveLocal('hero', data.hero); }
+    if (data.minerals) { setMinerals(data.minerals); saveLocal('minerals', data.minerals); }
+    if (data.zones) { setZones(data.zones); saveLocal('zones', data.zones); }
+    if (data.services) { setServices(data.services); saveLocal('services', data.services); }
+    if (data.products) { setProducts(data.products); saveLocal('products', data.products); }
+    if (data.packages) { setPackages(data.packages); saveLocal('packages', data.packages); }
+    if (data.gallery) { setGallery(data.gallery); saveLocal('gallery', data.gallery); }
+    if (data.reviews) { setReviews(data.reviews); saveLocal('reviews', data.reviews); }
+    if (data.faqs) { setFaqs(data.faqs); saveLocal('faqs', data.faqs); }
+    if (data.soundSettings) { setSoundSettings(data.soundSettings); saveLocal('soundSettings', data.soundSettings); }
+    setLastSync(new Date());
+  }, []);
+
+  // Cargar datos iniciales
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await apiGetFullData();
       if (data) {
-        if (data.info) { setInfo(data.info); saveLocal('info', data.info); }
-        if (data.hero) { setHero(data.hero); saveLocal('hero', data.hero); }
-        if (data.minerals) { setMinerals(data.minerals); saveLocal('minerals', data.minerals); }
-        if (data.zones) { setZones(data.zones); saveLocal('zones', data.zones); }
-        if (data.services) { setServices(data.services); saveLocal('services', data.services); }
-        if (data.products) { setProducts(data.products); saveLocal('products', data.products); }
-        if (data.packages) { setPackages(data.packages); saveLocal('packages', data.packages); }
-        if (data.gallery) { setGallery(data.gallery); saveLocal('gallery', data.gallery); }
-        if (data.reviews) { setReviews(data.reviews); saveLocal('reviews', data.reviews); }
-        if (data.faqs) { setFaqs(data.faqs); saveLocal('faqs', data.faqs); }
-        if (data.soundSettings) { setSoundSettings(data.soundSettings); saveLocal('soundSettings', data.soundSettings); }
-
+        applyIncomingData(data);
         setIsServerOnline(true);
-        setLastSync(new Date());
       }
     } catch (error) {
-      console.warn('Backend no disponible o usando caché local:', error.message);
+      console.warn('Backend/Firebase no disponible o usando caché local:', error.message);
       setIsServerOnline(false);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [applyIncomingData]);
+
+  // Suscripción en Tiempo Real a Firebase Firestore (si está configurado)
+  useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      setIsFirebaseOnline(false);
+      return;
+    }
+
+    setIsFirebaseOnline(true);
+    const unsubscribe = subscribeToFirebaseSiteData(
+      (realtimeData) => {
+        if (realtimeData) {
+          applyIncomingData(realtimeData);
+          setIsFirebaseOnline(true);
+          setIsLoading(false);
+        }
+      },
+      (err) => {
+        console.warn('Firebase snapshot error:', err);
+      }
+    );
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [applyIncomingData]);
 
   // Verificar autenticación al inicio
   useEffect(() => {
@@ -188,6 +228,43 @@ export function SiteDataProvider({ children }) {
     loadData();
   }, [loadData]);
 
+  // Sincronizar todos los datos actuales a Firebase (Seeding / Migración a la Nube)
+  const syncAllToFirebase = async () => {
+    if (!isFirebaseConfigured()) {
+      throw new Error('Debes configurar las credenciales de Firebase primero.');
+    }
+
+    const payload = {
+      info,
+      hero,
+      minerals,
+      zones,
+      services,
+      products,
+      packages,
+      gallery,
+      reviews,
+      faqs,
+      soundSettings
+    };
+
+    const res = await saveFirebaseSiteData(payload, false);
+    setIsFirebaseOnline(true);
+    setLastSync(new Date());
+    return res;
+  };
+
+  // Configurar Firebase dinámicamente desde el Admin
+  const saveAndApplyFirebaseConfig = async (newConfig) => {
+    saveFirebaseConfig(newConfig);
+    const initialized = initFirebase(newConfig);
+    setIsFirebaseOnline(initialized);
+    if (initialized) {
+      await loadData();
+    }
+    return initialized;
+  };
+
   // Auth actions
   const loginAdmin = async (username, password) => {
     const res = await apiLogin(username, password);
@@ -206,29 +283,25 @@ export function SiteDataProvider({ children }) {
 
   // Mutaciones de datos
   const updateInfo = async (newInfo) => {
-    setInfo(prev => {
-      const merged = { ...prev, ...newInfo };
-      saveLocal('info', merged);
-      return merged;
-    });
+    const merged = { ...info, ...newInfo };
+    setInfo(merged);
+    saveLocal('info', merged);
     try {
       await apiUpdateInfo(newInfo);
     } catch (err) {
-      console.warn('Servidor offline, guardado localmente:', err.message);
+      console.warn('Error sincronizando info:', err.message);
     }
     return true;
   };
 
   const updateHero = async (newHero) => {
-    setHero(prev => {
-      const merged = { ...prev, ...newHero };
-      saveLocal('hero', merged);
-      return merged;
-    });
+    const merged = { ...hero, ...newHero };
+    setHero(merged);
+    saveLocal('hero', merged);
     try {
       await apiUpdateHero(newHero);
     } catch (err) {
-      console.warn('Servidor offline, guardado localmente:', err.message);
+      console.warn('Error sincronizando hero:', err.message);
     }
     return true;
   };
@@ -239,7 +312,7 @@ export function SiteDataProvider({ children }) {
     try {
       await apiUpdateMinerals(newMinerals);
     } catch (err) {
-      console.warn('Servidor offline, guardado localmente:', err.message);
+      console.warn('Error sincronizando minerals:', err.message);
     }
     return true;
   };
@@ -250,42 +323,31 @@ export function SiteDataProvider({ children }) {
     if (isNew && !savedZone.id) {
       savedZone = { ...savedZone, id: `zone-${Date.now()}` };
     }
-    setZones(prev => {
-      let updated;
-      if (isNew) {
-        updated = [...prev, savedZone];
-      } else {
-        updated = prev.map(z => z.id === savedZone.id ? savedZone : z);
-      }
-      saveLocal('zones', updated);
-      return updated;
-    });
+    let updated;
+    if (isNew) {
+      updated = [...zones, savedZone];
+    } else {
+      updated = zones.map(z => z.id === savedZone.id ? savedZone : z);
+    }
+    setZones(updated);
+    saveLocal('zones', updated);
+
     try {
-      const res = await apiSaveZone(zoneData, isNew);
-      if (res?.success && res.zone) {
-        setZones(prev => {
-          const updated = prev.map(z => z.id === res.zone.id ? res.zone : z);
-          saveLocal('zones', updated);
-          return updated;
-        });
-        return res;
-      }
+      await apiSaveZone(savedZone, isNew, updated);
     } catch (err) {
-      console.warn('Servidor offline, guardado localmente:', err.message);
+      console.warn('Error guardando zona:', err.message);
     }
     return { success: true, zone: savedZone };
   };
 
   const deleteZone = async (id) => {
-    setZones(prev => {
-      const updated = prev.filter(z => z.id !== id);
-      saveLocal('zones', updated);
-      return updated;
-    });
+    const updated = zones.filter(z => z.id !== id);
+    setZones(updated);
+    saveLocal('zones', updated);
     try {
-      await apiDeleteZone(id);
+      await apiDeleteZone(id, updated);
     } catch (err) {
-      console.warn('Servidor offline, eliminado localmente:', err.message);
+      console.warn('Error eliminando zona:', err.message);
     }
   };
 
@@ -295,42 +357,31 @@ export function SiteDataProvider({ children }) {
     if (isNew && !savedService.id) {
       savedService = { ...savedService, id: `svc-${Date.now()}` };
     }
-    setServices(prev => {
-      let updated;
-      if (isNew) {
-        updated = [...prev, savedService];
-      } else {
-        updated = prev.map(s => s.id === savedService.id ? savedService : s);
-      }
-      saveLocal('services', updated);
-      return updated;
-    });
+    let updated;
+    if (isNew) {
+      updated = [...services, savedService];
+    } else {
+      updated = services.map(s => s.id === savedService.id ? savedService : s);
+    }
+    setServices(updated);
+    saveLocal('services', updated);
+
     try {
-      const res = await apiSaveService(serviceData, isNew);
-      if (res?.success && res.service) {
-        setServices(prev => {
-          const updated = prev.map(s => s.id === res.service.id ? res.service : s);
-          saveLocal('services', updated);
-          return updated;
-        });
-        return res;
-      }
+      await apiSaveService(savedService, isNew, updated);
     } catch (err) {
-      console.warn('Servidor offline, guardado localmente:', err.message);
+      console.warn('Error guardando servicio:', err.message);
     }
     return { success: true, service: savedService };
   };
 
   const deleteService = async (id) => {
-    setServices(prev => {
-      const updated = prev.filter(s => s.id !== id);
-      saveLocal('services', updated);
-      return updated;
-    });
+    const updated = services.filter(s => s.id !== id);
+    setServices(updated);
+    saveLocal('services', updated);
     try {
-      await apiDeleteService(id);
+      await apiDeleteService(id, updated);
     } catch (err) {
-      console.warn('Servidor offline, eliminado localmente:', err.message);
+      console.warn('Error eliminando servicio:', err.message);
     }
   };
 
@@ -340,42 +391,31 @@ export function SiteDataProvider({ children }) {
     if (isNew && !savedProduct.id) {
       savedProduct = { ...savedProduct, id: `prod-${Date.now()}` };
     }
-    setProducts(prev => {
-      let updated;
-      if (isNew) {
-        updated = [...prev, savedProduct];
-      } else {
-        updated = prev.map(p => p.id === savedProduct.id ? savedProduct : p);
-      }
-      saveLocal('products', updated);
-      return updated;
-    });
+    let updated;
+    if (isNew) {
+      updated = [...products, savedProduct];
+    } else {
+      updated = products.map(p => p.id === savedProduct.id ? savedProduct : p);
+    }
+    setProducts(updated);
+    saveLocal('products', updated);
+
     try {
-      const res = await apiSaveProduct(productData, isNew);
-      if (res?.success && res.product) {
-        setProducts(prev => {
-          const updated = prev.map(p => p.id === res.product.id ? res.product : p);
-          saveLocal('products', updated);
-          return updated;
-        });
-        return res;
-      }
+      await apiSaveProduct(savedProduct, isNew, updated);
     } catch (err) {
-      console.warn('Servidor offline, guardado localmente:', err.message);
+      console.warn('Error guardando producto:', err.message);
     }
     return { success: true, product: savedProduct };
   };
 
   const deleteProduct = async (id) => {
-    setProducts(prev => {
-      const updated = prev.filter(p => p.id !== id);
-      saveLocal('products', updated);
-      return updated;
-    });
+    const updated = products.filter(p => p.id !== id);
+    setProducts(updated);
+    saveLocal('products', updated);
     try {
-      await apiDeleteProduct(id);
+      await apiDeleteProduct(id, updated);
     } catch (err) {
-      console.warn('Servidor offline, eliminado localmente:', err.message);
+      console.warn('Error eliminando producto:', err.message);
     }
   };
 
@@ -385,79 +425,57 @@ export function SiteDataProvider({ children }) {
     if (isNew && !savedPackage.id) {
       savedPackage = { ...savedPackage, id: `pack-${Date.now()}` };
     }
-    setPackages(prev => {
-      let updated;
-      if (isNew) {
-        updated = [...prev, savedPackage];
-      } else {
-        updated = prev.map(p => p.id === savedPackage.id ? savedPackage : p);
-      }
-      saveLocal('packages', updated);
-      return updated;
-    });
+    let updated;
+    if (isNew) {
+      updated = [...packages, savedPackage];
+    } else {
+      updated = packages.map(p => p.id === savedPackage.id ? savedPackage : p);
+    }
+    setPackages(updated);
+    saveLocal('packages', updated);
+
     try {
-      const res = await apiSavePackage(pkgData, isNew);
-      if (res?.success && res.package) {
-        setPackages(prev => {
-          const updated = prev.map(p => p.id === res.package.id ? res.package : p);
-          saveLocal('packages', updated);
-          return updated;
-        });
-        return res;
-      }
+      await apiSavePackage(savedPackage, isNew, updated);
     } catch (err) {
-      console.warn('Servidor offline, guardado localmente:', err.message);
+      console.warn('Error guardando paquete:', err.message);
     }
     return { success: true, package: savedPackage };
   };
 
   const deletePackage = async (id) => {
-    setPackages(prev => {
-      const updated = prev.filter(p => p.id !== id);
-      saveLocal('packages', updated);
-      return updated;
-    });
+    const updated = packages.filter(p => p.id !== id);
+    setPackages(updated);
+    saveLocal('packages', updated);
     try {
-      await apiDeletePackage(id);
+      await apiDeletePackage(id, updated);
     } catch (err) {
-      console.warn('Servidor offline, eliminado localmente:', err.message);
+      console.warn('Error eliminando paquete:', err.message);
     }
   };
 
   // GALLERY
   const addGalleryPhoto = async (photoData) => {
     const photo = { ...photoData, id: photoData.id || `gal-${Date.now()}` };
-    setGallery(prev => {
-      const updated = [photo, ...prev];
-      saveLocal('gallery', updated);
-      return updated;
-    });
+    const updated = [photo, ...gallery];
+    setGallery(updated);
+    saveLocal('gallery', updated);
+
     try {
-      const res = await apiAddGalleryPhoto(photoData);
-      if (res?.success && res.photo) {
-        setGallery(prev => {
-          const updated = [res.photo, ...prev.filter(g => g.id !== photo.id)];
-          saveLocal('gallery', updated);
-          return updated;
-        });
-        return res;
-      }
+      await apiAddGalleryPhoto(photo, updated);
     } catch (err) {
-      console.warn('Servidor offline, guardado localmente:', err.message);
+      console.warn('Error guardando foto:', err.message);
     }
     return { success: true, photo };
   };
 
   const deleteGalleryPhoto = async (id) => {
-    setGallery(prev => {
-      const updated = prev.filter(g => g.id !== id);
-      saveLocal('gallery', updated);
-      return updated;
-    });
+    const updated = gallery.filter(g => g.id !== id);
+    setGallery(updated);
+    saveLocal('gallery', updated);
     try {
-      await apiDeleteGalleryPhoto(id);
+      await apiDeleteGalleryPhoto(id, updated);
     } catch (err) {
-      console.warn('Servidor offline, eliminado localmente:', err.message);
+      console.warn('Error eliminando foto:', err.message);
     }
   };
 
@@ -467,42 +485,31 @@ export function SiteDataProvider({ children }) {
     if (isNew && !savedReview.id) {
       savedReview = { ...savedReview, id: `rev-${Date.now()}` };
     }
-    setReviews(prev => {
-      let updated;
-      if (isNew) {
-        updated = [savedReview, ...prev];
-      } else {
-        updated = prev.map(r => String(r.id) === String(savedReview.id) ? savedReview : r);
-      }
-      saveLocal('reviews', updated);
-      return updated;
-    });
+    let updated;
+    if (isNew) {
+      updated = [savedReview, ...reviews];
+    } else {
+      updated = reviews.map(r => String(r.id) === String(savedReview.id) ? savedReview : r);
+    }
+    setReviews(updated);
+    saveLocal('reviews', updated);
+
     try {
-      const res = await apiSaveReview(reviewData, isNew);
-      if (res?.success && res.review) {
-        setReviews(prev => {
-          const updated = prev.map(r => String(r.id) === String(res.review.id) ? res.review : r);
-          saveLocal('reviews', updated);
-          return updated;
-        });
-        return res;
-      }
+      await apiSaveReview(savedReview, isNew, updated);
     } catch (err) {
-      console.warn('Servidor offline, guardado localmente:', err.message);
+      console.warn('Error guardando reseña:', err.message);
     }
     return { success: true, review: savedReview };
   };
 
   const deleteReview = async (id) => {
-    setReviews(prev => {
-      const updated = prev.filter(r => String(r.id) !== String(id));
-      saveLocal('reviews', updated);
-      return updated;
-    });
+    const updated = reviews.filter(r => String(r.id) !== String(id));
+    setReviews(updated);
+    saveLocal('reviews', updated);
     try {
-      await apiDeleteReview(id);
+      await apiDeleteReview(id, updated);
     } catch (err) {
-      console.warn('Servidor offline, eliminado localmente:', err.message);
+      console.warn('Error eliminando reseña:', err.message);
     }
   };
 
@@ -512,124 +519,91 @@ export function SiteDataProvider({ children }) {
     if (isNew && !savedFaq.id) {
       savedFaq = { ...savedFaq, id: `faq-${Date.now()}` };
     }
-    setFaqs(prev => {
-      let updated;
-      if (isNew) {
-        updated = [...prev, savedFaq];
-      } else {
-        updated = prev.map(f => f.id === savedFaq.id ? savedFaq : f);
-      }
-      saveLocal('faqs', updated);
-      return updated;
-    });
+    let updated;
+    if (isNew) {
+      updated = [...faqs, savedFaq];
+    } else {
+      updated = faqs.map(f => f.id === savedFaq.id ? savedFaq : f);
+    }
+    setFaqs(updated);
+    saveLocal('faqs', updated);
+
     try {
-      const res = await apiSaveFaq(faqData, isNew);
-      if (res?.success && res.faq) {
-        setFaqs(prev => {
-          const updated = prev.map(f => f.id === res.faq.id ? res.faq : f);
-          saveLocal('faqs', updated);
-          return updated;
-        });
-        return res;
-      }
+      await apiSaveFaq(savedFaq, isNew, updated);
     } catch (err) {
-      console.warn('Servidor offline, guardado localmente:', err.message);
+      console.warn('Error guardando FAQ:', err.message);
     }
     return { success: true, faq: savedFaq };
   };
 
   const deleteFaq = async (id) => {
-    setFaqs(prev => {
-      const updated = prev.filter(f => f.id !== id);
-      saveLocal('faqs', updated);
-      return updated;
-    });
+    const updated = faqs.filter(f => f.id !== id);
+    setFaqs(updated);
+    saveLocal('faqs', updated);
     try {
-      await apiDeleteFaq(id);
+      await apiDeleteFaq(id, updated);
     } catch (err) {
-      console.warn('Servidor offline, eliminado localmente:', err.message);
+      console.warn('Error eliminando FAQ:', err.message);
     }
   };
 
   // AMBIENT SOUNDS
   const updateSoundSettings = async (newSettings) => {
-    setSoundSettings(prev => {
-      const merged = { ...prev, ...newSettings };
-      saveLocal('soundSettings', merged);
-      return merged;
-    });
+    const merged = { ...soundSettings, ...newSettings };
+    setSoundSettings(merged);
+    saveLocal('soundSettings', merged);
     try {
-      await apiUpdateSoundSettings(newSettings);
+      await apiUpdateSoundSettings(merged);
       return true;
     } catch (err) {
-      console.warn('Servidor offline, guardado localmente:', err.message);
+      console.warn('Error actualizando sonidos:', err.message);
       return true;
     }
   };
 
   const setActiveSoundTrack = async (trackId) => {
-    setSoundSettings(prev => {
-      const merged = { ...prev, activeTrackId: trackId };
-      saveLocal('soundSettings', merged);
-      return merged;
-    });
+    const merged = { ...soundSettings, activeTrackId: trackId };
+    setSoundSettings(merged);
+    saveLocal('soundSettings', merged);
     try {
-      await apiUpdateSoundSettings({ activeTrackId: trackId });
+      await apiUpdateSoundSettings(merged);
       return true;
     } catch (err) {
-      console.warn('Servidor offline, guardado localmente:', err.message);
+      console.warn('Error actualizando sonido activo:', err.message);
       return true;
     }
   };
 
   const addSoundTrack = async (trackData) => {
+    const track = { ...trackData, id: trackData.id || `sound-${Date.now()}` };
+    const merged = { ...soundSettings, tracks: [...(soundSettings.tracks || []), track] };
+    setSoundSettings(merged);
+    saveLocal('soundSettings', merged);
+
     try {
-      const res = await apiAddSoundTrack(trackData);
-      if (res?.success && res.soundSettings) {
-        setSoundSettings(res.soundSettings);
-        saveLocal('soundSettings', res.soundSettings);
-      } else if (res?.success && res.track) {
-        setSoundSettings(prev => {
-          const merged = { ...prev, tracks: [...(prev.tracks || []), res.track] };
-          saveLocal('soundSettings', merged);
-          return merged;
-        });
-      }
-      return res;
+      await apiAddSoundTrack(track, merged);
     } catch (err) {
-      const track = { ...trackData, id: trackData.id || `sound-${Date.now()}` };
-      setSoundSettings(prev => {
-        const merged = { ...prev, tracks: [...(prev.tracks || []), track] };
-        saveLocal('soundSettings', merged);
-        return merged;
-      });
-      return { success: true, track };
+      console.warn('Error añadiendo pista de sonido:', err.message);
     }
+    return { success: true, track };
   };
 
   const deleteSoundTrack = async (id) => {
-    setSoundSettings(prev => {
-      const merged = { ...prev, tracks: (prev.tracks || []).filter(t => t.id !== id) };
-      saveLocal('soundSettings', merged);
-      return merged;
-    });
+    const merged = { ...soundSettings, tracks: (soundSettings.tracks || []).filter(t => t.id !== id) };
+    setSoundSettings(merged);
+    saveLocal('soundSettings', merged);
+
     try {
-      const res = await apiDeleteSoundTrack(id);
-      if (res?.success && res.soundSettings) {
-        setSoundSettings(res.soundSettings);
-        saveLocal('soundSettings', res.soundSettings);
-      }
-      return res;
+      await apiDeleteSoundTrack(id, merged);
     } catch (err) {
-      console.warn('Servidor offline, eliminado localmente:', err.message);
-      return { success: true };
+      console.warn('Error eliminando pista de sonido:', err.message);
     }
+    return { success: true };
   };
 
   // FACTORY RESET
   const resetToDefaults = async () => {
     try {
-      // Limpiar localStorage de Jamanco
       [
         'info', 'hero', 'minerals', 'zones', 'services', 
         'products', 'packages', 'gallery', 'reviews', 'faqs', 'soundSettings'
@@ -647,13 +621,26 @@ export function SiteDataProvider({ children }) {
       setFaqs(DEFAULT_FAQS);
       setSoundSettings(DEFAULT_SOUND_SETTINGS);
 
-      const res = await apiResetFactory();
-      if (res?.success) {
-        await loadData();
+      if (isFirebaseConfigured()) {
+        await saveFirebaseSiteData({
+          info: DEFAULT_INFO,
+          hero: DEFAULT_HERO,
+          minerals: DEFAULT_MINERALS,
+          zones: DEFAULT_ZONES,
+          services: DEFAULT_SERVICES,
+          products: DEFAULT_PRODUCTS,
+          packages: DEFAULT_PACKAGES,
+          gallery: DEFAULT_GALLERY,
+          reviews: DEFAULT_REVIEWS,
+          faqs: DEFAULT_FAQS,
+          soundSettings: DEFAULT_SOUND_SETTINGS
+        }, false);
       }
-      return res;
+
+      await apiResetFactory();
+      return { success: true };
     } catch (err) {
-      console.warn('Reset local completado:', err.message);
+      console.warn('Reset completado:', err.message);
       return { success: true };
     }
   };
@@ -672,6 +659,8 @@ export function SiteDataProvider({ children }) {
     soundSettings,
     isLoading,
     isServerOnline,
+    isFirebaseOnline,
+    isFirebaseActive: isFirebaseConfigured(),
     lastSync,
     isAdminLoggedIn,
     adminUser,
@@ -699,7 +688,11 @@ export function SiteDataProvider({ children }) {
     addSoundTrack,
     deleteSoundTrack,
     resetToDefaults,
-    refreshData: loadData
+    refreshData: loadData,
+    syncAllToFirebase,
+    saveAndApplyFirebaseConfig,
+    testFirebaseConnection,
+    getStoredFirebaseConfig
   };
 
   return (

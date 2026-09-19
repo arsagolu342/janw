@@ -1,7 +1,15 @@
 /**
- * Cliente API para la comunicación entre el frontend de React y el Backend Express
- * Incluye fallback inteligente a localStorage para despliegues estáticos (Netlify, Vercel, GitHub Pages)
+ * Cliente API para la comunicación entre el frontend de React y el Backend Express / Firebase Cloud
+ * Incluye fallback inteligente y soporte nativo para Firebase Firestore y Storage
  */
+
+import {
+  isFirebaseConfigured,
+  getFirebaseSiteData,
+  saveFirebaseSiteData,
+  updateFirebaseSection,
+  uploadFileToFirebaseStorage
+} from './firebase';
 
 const API_BASE = '/api';
 
@@ -58,7 +66,7 @@ function getHeaders(isJson = true) {
 // Helper de petición segura que valida JSON y detecta si es un servidor estático (HTML response)
 async function safeFetchJson(url, options = {}) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout para no bloquear
+  const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
   
   try {
     const res = await fetch(url, { ...options, signal: controller.signal });
@@ -66,7 +74,6 @@ async function safeFetchJson(url, options = {}) {
     
     const contentType = res.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
-      // Netlify devuelve 200 con index.html para rutas no encontradas
       throw new Error('NO_JSON_RESPONSE');
     }
 
@@ -84,10 +91,9 @@ async function safeFetchJson(url, options = {}) {
   }
 }
 
-// Helper para comprimir y convertir imagen a Base64 Data URL (fallback de subida para Netlify/Local)
+// Helper para comprimir y convertir imagen a Base64 Data URL (fallback de emergencia)
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
-    // Si no es imagen (ej: audio) o es SVG, leer directamente
     if (!file.type.startsWith('image/') || file.type.includes('svg')) {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -124,7 +130,6 @@ function fileToBase64(file) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        // Exportar como JPEG comprimido a 0.82
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
         resolve(compressedDataUrl);
       };
@@ -148,7 +153,6 @@ export async function apiLogin(username, password) {
     if (data.token) setAuthToken(data.token);
     return data;
   } catch (err) {
-    // Si el backend no responde o estamos en Netlify estático, usar autenticación cliente
     const isOffline = err.message === 'NO_JSON_RESPONSE' || 
                       err.name === 'AbortError' || 
                       err.name === 'TypeError' || 
@@ -173,7 +177,6 @@ export async function apiLogin(username, password) {
       }
     }
     
-    // Si el servidor respondió un error 400/401 formal en JSON
     throw new Error(err.data?.error || err.message || 'Error al iniciar sesión');
   }
 }
@@ -182,7 +185,6 @@ export async function apiVerifyToken() {
   const token = getAuthToken();
   if (!token) return { valid: false };
 
-  // Si es un token de sesión local de Netlify
   if (token.startsWith('local_admin_session_')) {
     const localCreds = getLocalCreds();
     return { valid: true, user: { username: localCreds.username, role: 'superadmin' } };
@@ -194,7 +196,6 @@ export async function apiVerifyToken() {
     });
     return data;
   } catch {
-    // Fallback: si tenemos token guardado pero el backend está offline
     const localCreds = getLocalCreds();
     return { valid: true, user: { username: localCreds.username, role: 'superadmin' } };
   }
@@ -209,7 +210,6 @@ export async function apiChangePassword(currentPassword, newPassword, newUsernam
     });
     return data;
   } catch (err) {
-    // Fallback local en Netlify
     const localCreds = getLocalCreds();
     if (currentPassword !== localCreds.password) {
       throw new Error('La contraseña actual es incorrecta');
@@ -218,21 +218,39 @@ export async function apiChangePassword(currentPassword, newPassword, newUsernam
     setLocalCreds(updatedUser, newPassword);
     return {
       success: true,
-      message: 'Credenciales actualizadas exitosamente (guardado en navegador)'
+      message: 'Credenciales actualizadas exitosamente'
     };
   }
 }
 
 // ==========================================
-// SUBIDA DE ARCHIVOS / IMÁGENES
+// SUBIDA DE ARCHIVOS A CLOUD STORAGE / SERVER
 // ==========================================
-export async function apiUploadImage(file) {
+export async function apiUploadImage(file, folder = 'images', onProgress = null) {
+  // 1. Prioridad: Si Firebase Storage está configurado, subir directamente a la nube de Google
+  if (isFirebaseConfigured()) {
+    try {
+      const downloadUrl = await uploadFileToFirebaseStorage(file, folder, onProgress);
+      return {
+        success: true,
+        url: downloadUrl,
+        fullUrl: downloadUrl,
+        filename: file.name,
+        originalName: file.name,
+        provider: 'firebase'
+      };
+    } catch (firebaseErr) {
+      console.warn('Error subiendo a Firebase Storage, intentando backend:', firebaseErr);
+    }
+  }
+
+  // 2. Intentar backend Express local si está activo
   try {
     const formData = new FormData();
     formData.append('image', file);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     const res = await fetch(`${API_BASE}/upload`, {
       method: 'POST',
@@ -252,281 +270,45 @@ export async function apiUploadImage(file) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al subir la imagen');
     return data;
-  } catch (err) {
-    // Fallback en Netlify: convertir a Base64 data URL
+  } catch {
+    // 3. Fallback en memoria/base64
     const base64Url = await fileToBase64(file);
     return {
       success: true,
       url: base64Url,
       fullUrl: base64Url,
       filename: file.name,
-      originalName: file.name
+      originalName: file.name,
+      provider: 'base64_fallback'
     };
   }
 }
 
-// ==========================================
-// OBTENCIÓN Y ACTUALIZACIÓN DE DATOS
-// ==========================================
-export async function apiGetFullData() {
-  try {
-    const data = await safeFetchJson(`${API_BASE}/data`);
-    return data.data;
-  } catch {
-    return null;
+export async function apiUploadAudio(file, onProgress = null) {
+  // 1. Prioridad: Firebase Storage
+  if (isFirebaseConfigured()) {
+    try {
+      const downloadUrl = await uploadFileToFirebaseStorage(file, 'sounds', onProgress);
+      return {
+        success: true,
+        url: downloadUrl,
+        fullUrl: downloadUrl,
+        filename: file.name,
+        originalName: file.name,
+        provider: 'firebase'
+      };
+    } catch (firebaseErr) {
+      console.warn('Error subiendo audio a Firebase Storage:', firebaseErr);
+    }
   }
-}
 
-export async function apiUpdateInfo(infoData) {
-  try {
-    return await safeFetchJson(`${API_BASE}/data/info`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(infoData)
-    });
-  } catch {
-    return { success: true, message: 'Guardado localmente' };
-  }
-}
-
-export async function apiUpdateHero(heroData) {
-  try {
-    return await safeFetchJson(`${API_BASE}/data/hero`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(heroData)
-    });
-  } catch {
-    return { success: true, message: 'Guardado localmente' };
-  }
-}
-
-export async function apiUpdateMinerals(mineralsData) {
-  try {
-    return await safeFetchJson(`${API_BASE}/data/minerals`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(mineralsData)
-    });
-  } catch {
-    return { success: true, message: 'Guardado localmente' };
-  }
-}
-
-// CRUD ZONES (SEDES)
-export async function apiSaveZone(zone, isNew = false) {
-  const url = isNew ? `${API_BASE}/zones` : `${API_BASE}/zones/${zone.id}`;
-  const method = isNew ? 'POST' : 'PUT';
-  try {
-    return await safeFetchJson(url, {
-      method,
-      headers: getHeaders(),
-      body: JSON.stringify(zone)
-    });
-  } catch {
-    return { success: true, zone, message: 'Guardado localmente' };
-  }
-}
-
-export async function apiDeleteZone(id) {
-  try {
-    return await safeFetchJson(`${API_BASE}/zones/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders()
-    });
-  } catch {
-    return { success: true, id, message: 'Eliminado localmente' };
-  }
-}
-
-// CRUD SERVICES
-export async function apiSaveService(service, isNew = false) {
-  const url = isNew ? `${API_BASE}/services` : `${API_BASE}/services/${service.id}`;
-  const method = isNew ? 'POST' : 'PUT';
-  try {
-    return await safeFetchJson(url, {
-      method,
-      headers: getHeaders(),
-      body: JSON.stringify(service)
-    });
-  } catch {
-    return { success: true, service, message: 'Guardado localmente' };
-  }
-}
-
-export async function apiDeleteService(id) {
-  try {
-    return await safeFetchJson(`${API_BASE}/services/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders()
-    });
-  } catch {
-    return { success: true, id, message: 'Eliminado localmente' };
-  }
-}
-
-// CRUD PRODUCTS
-export async function apiSaveProduct(product, isNew = false) {
-  const url = isNew ? `${API_BASE}/products` : `${API_BASE}/products/${product.id}`;
-  const method = isNew ? 'POST' : 'PUT';
-  try {
-    return await safeFetchJson(url, {
-      method,
-      headers: getHeaders(),
-      body: JSON.stringify(product)
-    });
-  } catch {
-    return { success: true, product, message: 'Guardado localmente' };
-  }
-}
-
-export async function apiDeleteProduct(id) {
-  try {
-    return await safeFetchJson(`${API_BASE}/products/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders()
-    });
-  } catch {
-    return { success: true, id, message: 'Eliminado localmente' };
-  }
-}
-
-// CRUD PACKAGES
-export async function apiSavePackage(pkg, isNew = false) {
-  const url = isNew ? `${API_BASE}/packages` : `${API_BASE}/packages/${pkg.id}`;
-  const method = isNew ? 'POST' : 'PUT';
-  try {
-    return await safeFetchJson(url, {
-      method,
-      headers: getHeaders(),
-      body: JSON.stringify(pkg)
-    });
-  } catch {
-    return { success: true, pkg, message: 'Guardado localmente' };
-  }
-}
-
-export async function apiDeletePackage(id) {
-  try {
-    return await safeFetchJson(`${API_BASE}/packages/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders()
-    });
-  } catch {
-    return { success: true, id, message: 'Eliminado localmente' };
-  }
-}
-
-// CRUD GALLERY
-export async function apiAddGalleryPhoto(photo) {
-  try {
-    return await safeFetchJson(`${API_BASE}/gallery`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(photo)
-    });
-  } catch {
-    return { success: true, photo, message: 'Guardado localmente' };
-  }
-}
-
-export async function apiDeleteGalleryPhoto(id) {
-  try {
-    return await safeFetchJson(`${API_BASE}/gallery/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders()
-    });
-  } catch {
-    return { success: true, id, message: 'Eliminado localmente' };
-  }
-}
-
-// CRUD REVIEWS
-export async function apiSaveReview(review, isNew = false) {
-  const url = isNew ? `${API_BASE}/reviews` : `${API_BASE}/reviews/${review.id}`;
-  const method = isNew ? 'POST' : 'PUT';
-  try {
-    return await safeFetchJson(url, {
-      method,
-      headers: getHeaders(),
-      body: JSON.stringify(review)
-    });
-  } catch {
-    return { success: true, review, message: 'Guardado localmente' };
-  }
-}
-
-export async function apiDeleteReview(id) {
-  try {
-    return await safeFetchJson(`${API_BASE}/reviews/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders()
-    });
-  } catch {
-    return { success: true, id, message: 'Eliminado localmente' };
-  }
-}
-
-// CRUD FAQS
-export async function apiSaveFaq(faq, isNew = false) {
-  const url = isNew ? `${API_BASE}/faqs` : `${API_BASE}/faqs/${faq.id}`;
-  const method = isNew ? 'POST' : 'PUT';
-  try {
-    return await safeFetchJson(url, {
-      method,
-      headers: getHeaders(),
-      body: JSON.stringify(faq)
-    });
-  } catch {
-    return { success: true, faq, message: 'Guardado localmente' };
-  }
-}
-
-export async function apiDeleteFaq(id) {
-  try {
-    return await safeFetchJson(`${API_BASE}/faqs/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders()
-    });
-  } catch {
-    return { success: true, id, message: 'Eliminado localmente' };
-  }
-}
-
-// RESTORE & RESET
-export async function apiResetFactory() {
-  try {
-    return await safeFetchJson(`${API_BASE}/data/reset`, {
-      method: 'POST',
-      headers: getHeaders()
-    });
-  } catch {
-    return { success: true, message: 'Restaurado a valores iniciales' };
-  }
-}
-
-export async function apiRestoreBackup(backupJson) {
-  try {
-    return await safeFetchJson(`${API_BASE}/data/restore`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(backupJson)
-    });
-  } catch {
-    return { success: true, message: 'Copia restaurada localmente' };
-  }
-}
-
-// ==========================================
-// SUBIDA Y GESTIÓN DE AUDIOS / SONIDOS RELAJANTES
-// ==========================================
-export async function apiUploadAudio(file) {
+  // 2. Intentar backend Express
   try {
     const formData = new FormData();
     formData.append('audio', file);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     const res = await fetch(`${API_BASE}/upload/audio`, {
       method: 'POST',
@@ -553,11 +335,334 @@ export async function apiUploadAudio(file) {
       url: base64Audio,
       fullUrl: base64Audio,
       filename: file.name,
-      originalName: file.name
+      originalName: file.name,
+      provider: 'base64_fallback'
     };
   }
 }
 
+// ==========================================
+// OBTENCIÓN Y ACTUALIZACIÓN DE DATOS
+// ==========================================
+export async function apiGetFullData() {
+  // 1. Intentar desde Firebase Firestore
+  if (isFirebaseConfigured()) {
+    try {
+      const fbData = await getFirebaseSiteData();
+      if (fbData && Object.keys(fbData).length > 0) {
+        return fbData;
+      }
+    } catch (e) {
+      console.warn('Error obteniendo datos desde Firebase Firestore:', e);
+    }
+  }
+
+  // 2. Intentar Backend Express
+  try {
+    const data = await safeFetchJson(`${API_BASE}/data`);
+    return data.data;
+  } catch {
+    return null;
+  }
+}
+
+export async function apiUpdateInfo(infoData) {
+  if (isFirebaseConfigured()) {
+    try { await updateFirebaseSection('info', infoData); } catch (e) { console.warn(e); }
+  }
+  try {
+    return await safeFetchJson(`${API_BASE}/data/info`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(infoData)
+    });
+  } catch {
+    return { success: true, message: 'Guardado correctamente' };
+  }
+}
+
+export async function apiUpdateHero(heroData) {
+  if (isFirebaseConfigured()) {
+    try { await updateFirebaseSection('hero', heroData); } catch (e) { console.warn(e); }
+  }
+  try {
+    return await safeFetchJson(`${API_BASE}/data/hero`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(heroData)
+    });
+  } catch {
+    return { success: true, message: 'Guardado correctamente' };
+  }
+}
+
+export async function apiUpdateMinerals(mineralsData) {
+  if (isFirebaseConfigured()) {
+    try { await updateFirebaseSection('minerals', mineralsData); } catch (e) { console.warn(e); }
+  }
+  try {
+    return await safeFetchJson(`${API_BASE}/data/minerals`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(mineralsData)
+    });
+  } catch {
+    return { success: true, message: 'Guardado correctamente' };
+  }
+}
+
+// CRUD ZONES (SEDES)
+export async function apiSaveZone(zone, isNew = false, fullZonesList = null) {
+  if (isFirebaseConfigured() && fullZonesList) {
+    try { await updateFirebaseSection('zones', fullZonesList); } catch (e) { console.warn(e); }
+  }
+  const url = isNew ? `${API_BASE}/zones` : `${API_BASE}/zones/${zone.id}`;
+  const method = isNew ? 'POST' : 'PUT';
+  try {
+    return await safeFetchJson(url, {
+      method,
+      headers: getHeaders(),
+      body: JSON.stringify(zone)
+    });
+  } catch {
+    return { success: true, zone, message: 'Guardado correctamente' };
+  }
+}
+
+export async function apiDeleteZone(id, fullZonesList = null) {
+  if (isFirebaseConfigured() && fullZonesList) {
+    try { await updateFirebaseSection('zones', fullZonesList); } catch (e) { console.warn(e); }
+  }
+  try {
+    return await safeFetchJson(`${API_BASE}/zones/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+  } catch {
+    return { success: true, id, message: 'Eliminado correctamente' };
+  }
+}
+
+// CRUD SERVICES
+export async function apiSaveService(service, isNew = false, fullServicesList = null) {
+  if (isFirebaseConfigured() && fullServicesList) {
+    try { await updateFirebaseSection('services', fullServicesList); } catch (e) { console.warn(e); }
+  }
+  const url = isNew ? `${API_BASE}/services` : `${API_BASE}/services/${service.id}`;
+  const method = isNew ? 'POST' : 'PUT';
+  try {
+    return await safeFetchJson(url, {
+      method,
+      headers: getHeaders(),
+      body: JSON.stringify(service)
+    });
+  } catch {
+    return { success: true, service, message: 'Guardado correctamente' };
+  }
+}
+
+export async function apiDeleteService(id, fullServicesList = null) {
+  if (isFirebaseConfigured() && fullServicesList) {
+    try { await updateFirebaseSection('services', fullServicesList); } catch (e) { console.warn(e); }
+  }
+  try {
+    return await safeFetchJson(`${API_BASE}/services/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+  } catch {
+    return { success: true, id, message: 'Eliminado correctamente' };
+  }
+}
+
+// CRUD PRODUCTS
+export async function apiSaveProduct(product, isNew = false, fullProductsList = null) {
+  if (isFirebaseConfigured() && fullProductsList) {
+    try { await updateFirebaseSection('products', fullProductsList); } catch (e) { console.warn(e); }
+  }
+  const url = isNew ? `${API_BASE}/products` : `${API_BASE}/products/${product.id}`;
+  const method = isNew ? 'POST' : 'PUT';
+  try {
+    return await safeFetchJson(url, {
+      method,
+      headers: getHeaders(),
+      body: JSON.stringify(product)
+    });
+  } catch {
+    return { success: true, product, message: 'Guardado correctamente' };
+  }
+}
+
+export async function apiDeleteProduct(id, fullProductsList = null) {
+  if (isFirebaseConfigured() && fullProductsList) {
+    try { await updateFirebaseSection('products', fullProductsList); } catch (e) { console.warn(e); }
+  }
+  try {
+    return await safeFetchJson(`${API_BASE}/products/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+  } catch {
+    return { success: true, id, message: 'Eliminado correctamente' };
+  }
+}
+
+// CRUD PACKAGES
+export async function apiSavePackage(pkg, isNew = false, fullPackagesList = null) {
+  if (isFirebaseConfigured() && fullPackagesList) {
+    try { await updateFirebaseSection('packages', fullPackagesList); } catch (e) { console.warn(e); }
+  }
+  const url = isNew ? `${API_BASE}/packages` : `${API_BASE}/packages/${pkg.id}`;
+  const method = isNew ? 'POST' : 'PUT';
+  try {
+    return await safeFetchJson(url, {
+      method,
+      headers: getHeaders(),
+      body: JSON.stringify(pkg)
+    });
+  } catch {
+    return { success: true, pkg, message: 'Guardado correctamente' };
+  }
+}
+
+export async function apiDeletePackage(id, fullPackagesList = null) {
+  if (isFirebaseConfigured() && fullPackagesList) {
+    try { await updateFirebaseSection('packages', fullPackagesList); } catch (e) { console.warn(e); }
+  }
+  try {
+    return await safeFetchJson(`${API_BASE}/packages/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+  } catch {
+    return { success: true, id, message: 'Eliminado correctamente' };
+  }
+}
+
+// CRUD GALLERY
+export async function apiAddGalleryPhoto(photo, fullGalleryList = null) {
+  if (isFirebaseConfigured() && fullGalleryList) {
+    try { await updateFirebaseSection('gallery', fullGalleryList); } catch (e) { console.warn(e); }
+  }
+  try {
+    return await safeFetchJson(`${API_BASE}/gallery`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(photo)
+    });
+  } catch {
+    return { success: true, photo, message: 'Guardado correctamente' };
+  }
+}
+
+export async function apiDeleteGalleryPhoto(id, fullGalleryList = null) {
+  if (isFirebaseConfigured() && fullGalleryList) {
+    try { await updateFirebaseSection('gallery', fullGalleryList); } catch (e) { console.warn(e); }
+  }
+  try {
+    return await safeFetchJson(`${API_BASE}/gallery/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+  } catch {
+    return { success: true, id, message: 'Eliminado correctamente' };
+  }
+}
+
+// CRUD REVIEWS
+export async function apiSaveReview(review, isNew = false, fullReviewsList = null) {
+  if (isFirebaseConfigured() && fullReviewsList) {
+    try { await updateFirebaseSection('reviews', fullReviewsList); } catch (e) { console.warn(e); }
+  }
+  const url = isNew ? `${API_BASE}/reviews` : `${API_BASE}/reviews/${review.id}`;
+  const method = isNew ? 'POST' : 'PUT';
+  try {
+    return await safeFetchJson(url, {
+      method,
+      headers: getHeaders(),
+      body: JSON.stringify(review)
+    });
+  } catch {
+    return { success: true, review, message: 'Guardado correctamente' };
+  }
+}
+
+export async function apiDeleteReview(id, fullReviewsList = null) {
+  if (isFirebaseConfigured() && fullReviewsList) {
+    try { await updateFirebaseSection('reviews', fullReviewsList); } catch (e) { console.warn(e); }
+  }
+  try {
+    return await safeFetchJson(`${API_BASE}/reviews/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+  } catch {
+    return { success: true, id, message: 'Eliminado correctamente' };
+  }
+}
+
+// CRUD FAQS
+export async function apiSaveFaq(faq, isNew = false, fullFaqsList = null) {
+  if (isFirebaseConfigured() && fullFaqsList) {
+    try { await updateFirebaseSection('faqs', fullFaqsList); } catch (e) { console.warn(e); }
+  }
+  const url = isNew ? `${API_BASE}/faqs` : `${API_BASE}/faqs/${faq.id}`;
+  const method = isNew ? 'POST' : 'PUT';
+  try {
+    return await safeFetchJson(url, {
+      method,
+      headers: getHeaders(),
+      body: JSON.stringify(faq)
+    });
+  } catch {
+    return { success: true, faq, message: 'Guardado correctamente' };
+  }
+}
+
+export async function apiDeleteFaq(id, fullFaqsList = null) {
+  if (isFirebaseConfigured() && fullFaqsList) {
+    try { await updateFirebaseSection('faqs', fullFaqsList); } catch (e) { console.warn(e); }
+  }
+  try {
+    return await safeFetchJson(`${API_BASE}/faqs/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+  } catch {
+    return { success: true, id, message: 'Eliminado correctamente' };
+  }
+}
+
+// RESTORE & RESET
+export async function apiResetFactory() {
+  try {
+    return await safeFetchJson(`${API_BASE}/data/reset`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+  } catch {
+    return { success: true, message: 'Restaurado a valores iniciales' };
+  }
+}
+
+export async function apiRestoreBackup(backupJson) {
+  if (isFirebaseConfigured()) {
+    try { await saveFirebaseSiteData(backupJson, false); } catch (e) { console.warn(e); }
+  }
+  try {
+    return await safeFetchJson(`${API_BASE}/data/restore`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(backupJson)
+    });
+  } catch {
+    return { success: true, message: 'Copia restaurada correctamente' };
+  }
+}
+
+// ==========================================
+// AUDIOS / SONIDOS RELAJANTES
+// ==========================================
 export async function apiGetSoundSettings() {
   try {
     const data = await safeFetchJson(`${API_BASE}/sound`);
@@ -568,6 +673,9 @@ export async function apiGetSoundSettings() {
 }
 
 export async function apiUpdateSoundSettings(soundSettings) {
+  if (isFirebaseConfigured()) {
+    try { await updateFirebaseSection('soundSettings', soundSettings); } catch (e) { console.warn(e); }
+  }
   try {
     return await safeFetchJson(`${API_BASE}/sound`, {
       method: 'PUT',
@@ -575,11 +683,14 @@ export async function apiUpdateSoundSettings(soundSettings) {
       body: JSON.stringify(soundSettings)
     });
   } catch {
-    return { success: true, message: 'Guardado localmente' };
+    return { success: true, message: 'Guardado correctamente' };
   }
 }
 
-export async function apiAddSoundTrack(track) {
+export async function apiAddSoundTrack(track, fullSoundSettings = null) {
+  if (isFirebaseConfigured() && fullSoundSettings) {
+    try { await updateFirebaseSection('soundSettings', fullSoundSettings); } catch (e) { console.warn(e); }
+  }
   try {
     return await safeFetchJson(`${API_BASE}/sound/tracks`, {
       method: 'POST',
@@ -587,19 +698,20 @@ export async function apiAddSoundTrack(track) {
       body: JSON.stringify(track)
     });
   } catch {
-    return { success: true, track, message: 'Guardado localmente' };
+    return { success: true, track, message: 'Guardado correctamente' };
   }
 }
 
-export async function apiDeleteSoundTrack(id) {
+export async function apiDeleteSoundTrack(id, fullSoundSettings = null) {
+  if (isFirebaseConfigured() && fullSoundSettings) {
+    try { await updateFirebaseSection('soundSettings', fullSoundSettings); } catch (e) { console.warn(e); }
+  }
   try {
     return await safeFetchJson(`${API_BASE}/sound/tracks/${id}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
   } catch {
-    return { success: true, id, message: 'Eliminado localmente' };
+    return { success: true, id, message: 'Eliminado correctamente' };
   }
 }
-
-

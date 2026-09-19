@@ -36,7 +36,7 @@ import SettingsTab from './tabs/SettingsTab';
 import Logo from '../components/Logo';
 
 export default function AdminDashboard({ onExitAdmin }) {
-  const { logoutAdmin, isServerOnline, info } = useSiteData();
+  const { logoutAdmin, isServerOnline, isFirebaseOnline, info } = useSiteData();
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -53,7 +53,7 @@ export default function AdminDashboard({ onExitAdmin }) {
     { id: 'faqs', label: 'Preguntas Frecuentes', icon: HelpCircle },
     { id: 'minerals', label: 'Minerales & Salud', icon: Activity },
     { id: 'sounds', label: 'Sonidos Relajantes', icon: Volume2 },
-    { id: 'settings', label: 'Ajustes & Seguridad', icon: Settings }
+    { id: 'settings', label: 'Ajustes & Cloud', icon: Settings }
   ];
 
   const handleSelectTab = (id) => {
@@ -92,17 +92,17 @@ export default function AdminDashboard({ onExitAdmin }) {
           </button>
         </div>
 
-        {/* Server Status Badge */}
+        {/* Server / Cloud Status Badge */}
         <div style={{ padding: '0.75rem 1.5rem', background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem' }}>
           <span style={{
             width: '8px',
             height: '8px',
             borderRadius: '50%',
-            background: isServerOnline ? '#10b981' : '#ef4444',
-            boxShadow: `0 0 8px ${isServerOnline ? '#10b981' : '#ef4444'}`
+            background: isFirebaseOnline ? '#10b981' : isServerOnline ? '#38bdf8' : '#f59e0b',
+            boxShadow: `0 0 8px ${isFirebaseOnline ? '#10b981' : isServerOnline ? '#38bdf8' : '#f59e0b'}`
           }} />
-          <span style={{ color: isServerOnline ? '#34d399' : '#f87171', fontWeight: '600' }}>
-            {isServerOnline ? 'Servidor Backend Activo' : 'Backend Desconectado'}
+          <span style={{ color: isFirebaseOnline ? '#34d399' : isServerOnline ? '#38bdf8' : '#fbbf24', fontWeight: '600' }}>
+            {isFirebaseOnline ? 'Firebase Cloud Activo 🟢' : isServerOnline ? 'Backend Local Activo 🔵' : 'Modo Local 🟡'}
           </span>
         </div>
 

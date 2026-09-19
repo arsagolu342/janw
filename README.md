@@ -155,11 +155,13 @@ Jan/
 - **Canvas Confetti**: Animaciones de celebración al reservar o comprar.
 - **Vanilla CSS (Custom Design System)**: Variables CSS con soporte para modo oscuro/claro, efecto Glassmorphism, gradientes térmicos y diseño totalmente responsive.
 
-### Backend
-- **Node.js** + **Express 5**: Servidor API REST ligero y de alto rendimiento.
-- **Multer**: Procesamiento y almacenamiento seguro de imágenes (`.png`, `.jpg`, `.webp`) y audios (`.wav`, `.mp3`).
-- **JSON Web Token (JWT)** & **Bcrypt.js**: Autenticación segura y encriptación de contraseñas.
-- **CORS** & **Dotenv**: Manejo de variables de entorno y solicitudes entre dominios.
+### Cloud Backend & Base de Datos
+- **Google Firebase**:
+  - **Cloud Firestore**: Base de datos NoSQL en tiempo real para todos los contenidos, productos, servicios, galerías y textos.
+  - **Firebase Cloud Storage**: Almacenamiento y CDN global para imágenes y archivos de sonido relajante.
+- **Node.js** + **Express 5 (Opcional / Desarrollo local)**: Servidor API REST ligero.
+- **Multer**: Procesamiento de archivos local.
+- **JSON Web Token (JWT)** & **Bcrypt.js**: Autenticación y cifrado.
 
 ---
 
@@ -180,11 +182,25 @@ cd janw
 npm install
 ```
 
-### 3. Configurar variables de entorno (Opcional)
-Crear un archivo `.env` en la raíz si deseas personalizar puertos o claves:
+### 3. Conexión con Firebase Cloud (Para sincronización mundial en tiempo real)
+
+Puedes conectar Firebase de dos formas:
+
+#### Opción A (Visual desde el Panel Admin - Recomendada):
+1. Inicia la app (`npm run dev`) y entra a `http://localhost:3000/#admin`.
+2. Ve a la pestaña **Ajustes & Cloud**.
+3. Pega la configuración de tu proyecto de Firebase obtenida de [Firebase Console](https://console.firebase.google.com/) o llena los campos (ApiKey, ProjectId, StorageBucket).
+4. Haz clic en **Guardar y Conectar Firebase** y luego en **Subir y Sincronizar Datos Actuales en Firebase**. ¡Listo!
+
+#### Opción B (Variables de Entorno `.env`):
+Copia `.env.example` a `.env` y coloca tus claves:
 ```env
-PORT=5000
-JWT_SECRET=tu_clave_secreta_super_segura
+VITE_FIREBASE_API_KEY=AIzaSy...
+VITE_FIREBASE_AUTH_DOMAIN=tu-proyecto.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=tu-proyecto
+VITE_FIREBASE_STORAGE_BUCKET=tu-proyecto.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=1:123456789:web:abcdef123456
 ```
 
 ---
