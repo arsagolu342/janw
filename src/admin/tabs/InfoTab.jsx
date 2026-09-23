@@ -164,7 +164,7 @@ export default function InfoTab() {
       setUploadingLogo(true);
       setFeedback(null);
 
-      // 1. Comprimir imagen y generar DataURL optimizado de forma instantánea
+      // 1. Comprimir imagen y generar DataURL optimizado de forma instantánea (< 35KB)
       const optimizedDataUrl = await compressAndReadLogoImage(file);
       setFormData(prev => ({
         ...prev,
@@ -172,21 +172,7 @@ export default function InfoTab() {
         logoType: 'image'
       }));
 
-      // 2. Subir al backend o Cloud Storage si está conectado
-      try {
-        const res = await apiUploadImage(file);
-        if (res && res.url) {
-          setFormData(prev => ({
-            ...prev,
-            logoUrl: res.url,
-            logoType: 'image'
-          }));
-        }
-      } catch (uploadErr) {
-        console.warn('Backend upload offline, usando imagen optimizada localmente:', uploadErr.message);
-      }
-
-      setFeedback({ type: 'success', text: '¡Imagen de logotipo cargada exitosamente! Haz clic en "Guardar Todo" para aplicarla.' });
+      setFeedback({ type: 'success', text: '¡Imagen de logotipo cargada y optimizada! Haz clic en "Guardar Todo" para aplicarla.' });
       setTimeout(() => setFeedback(null), 3500);
     } catch (err) {
       console.error(err);

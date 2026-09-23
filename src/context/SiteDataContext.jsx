@@ -205,12 +205,36 @@ export function SiteDataProvider({ children }) {
     }
   }, [applyIncomingData]);
 
-  // Sincronización en Tiempo Real bidireccional (SSE) entre Administrador y Público
+  // Sincronización en Tiempo Real bidireccional (SSE) solo cuando el backend Express local esté activo
   useEffect(() => {
     let eventSource = null;
     let reconnectTimeout = null;
+    let isCancelled = false;
 
-    const connectSSE = () => {
+    const connectSSE = async () => {
+      // Verificar silenciosamente si el backend local existe antes de abrir EventSource (evita errores en Netlify)
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const res = await fetch('/api/health', { method: 'GET', signal: controller.signal }).catch(() => null);
+        clearTimeout(timeoutId);
+
+        if (!res || !res.ok) {
+          setIsServerOnline(false);
+          return;
+        }
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          setIsServerOnline(false);
+          return;
+        }
+      } catch {
+        setIsServerOnline(false);
+        return;
+      }
+
+      if (isCancelled) return;
+
       try {
         eventSource = new EventSource('/api/events');
         
@@ -233,10 +257,11 @@ export function SiteDataProvider({ children }) {
 
         eventSource.onerror = () => {
           eventSource?.close();
-          reconnectTimeout = setTimeout(connectSSE, 4000);
+          // No reintentar en bucle agresivo si falla
+          setIsServerOnline(false);
         };
-      } catch (err) {
-        console.warn('Error iniciando EventSource SSE:', err);
+      } catch {
+        setIsServerOnline(false);
       }
     };
 
@@ -250,6 +275,7 @@ export function SiteDataProvider({ children }) {
     }).catch(() => {});
 
     return () => {
+      isCancelled = true;
       if (eventSource) eventSource.close();
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
