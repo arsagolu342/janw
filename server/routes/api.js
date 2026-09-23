@@ -153,7 +153,11 @@ router.get('/data', async (req, res) => {
 router.put('/data/info', async (req, res) => {
   try {
     const db = readDb();
-    db.info = { ...db.info, ...req.body };
+    let incoming = (req.body && req.body.info && typeof req.body.info === 'object' && !req.body.name) ? req.body.info : req.body;
+    db.info = { ...db.info, ...incoming };
+    if (db.info && db.info.info) {
+      delete db.info.info;
+    }
     await syncAndBroadcast(db, 'info', db.info);
     return res.json({ success: true, message: 'Información general actualizada', info: db.info });
   } catch (error) {

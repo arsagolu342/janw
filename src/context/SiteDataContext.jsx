@@ -107,7 +107,15 @@ const loadLocal = (key, defaultVal) => {
   try {
     const item = localStorage.getItem(`terjamanco_${key}`);
     if (item) {
-      const parsed = JSON.parse(item);
+      let parsed = JSON.parse(item);
+      if (key === 'info' && parsed) {
+        if (parsed.info && typeof parsed.info === 'object' && !parsed.name) {
+          parsed = parsed.info;
+        }
+        if (parsed.info) {
+          delete parsed.info;
+        }
+      }
       if (key === 'hero' && parsed && (!parsed.bgImage || parsed.bgImage.includes('unsplash.com'))) {
         parsed.bgImage = "/images/jamanco_hero_cinematic.jpg";
       }
@@ -154,7 +162,18 @@ export function SiteDataProvider({ children }) {
   // Aplicar datos entrantes de forma atómica
   const applyIncomingData = useCallback((data) => {
     if (!data) return;
-    if (data.info) { setInfo(data.info); saveLocal('info', data.info); }
+    if (data.info) {
+      let cleanInfo = data.info;
+      if (cleanInfo.info && typeof cleanInfo.info === 'object' && !cleanInfo.name) {
+        cleanInfo = cleanInfo.info;
+      }
+      if (cleanInfo.info) {
+        cleanInfo = { ...cleanInfo };
+        delete cleanInfo.info;
+      }
+      setInfo(cleanInfo);
+      saveLocal('info', cleanInfo);
+    }
     if (data.hero) { setHero(data.hero); saveLocal('hero', data.hero); }
     if (data.minerals) { setMinerals(data.minerals); saveLocal('minerals', data.minerals); }
     if (data.zones) { setZones(data.zones); saveLocal('zones', data.zones); }
@@ -346,11 +365,15 @@ export function SiteDataProvider({ children }) {
 
   // Mutaciones de datos
   const updateInfo = async (newInfo) => {
-    const merged = { ...info, ...newInfo };
+    let incoming = (newInfo && newInfo.info && typeof newInfo.info === 'object' && !newInfo.name) ? newInfo.info : newInfo;
+    let current = (info && info.info && typeof info.info === 'object' && !info.name) ? info.info : info;
+    const merged = { ...current, ...incoming };
+    delete merged.info;
+
     setInfo(merged);
     saveLocal('info', merged);
     try {
-      await apiUpdateInfo(newInfo);
+      await apiUpdateInfo(merged);
     } catch (err) {
       console.warn('Error sincronizando info:', err.message);
     }

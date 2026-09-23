@@ -153,6 +153,38 @@ export async function getFirebaseSiteData() {
 }
 
 /**
+ * Sanitizar objetos de forma segura para Cloud Firestore
+ * Elimina undefined, funciones, símbolos y aplana estructuras anidadas erróneas
+ */
+export function cleanForFirestore(data) {
+  if (data === null || data === undefined) return null;
+  if (typeof data === 'string' || typeof data === 'number' || typeof data === 'boolean') {
+    return data;
+  }
+  if (Array.isArray(data)) {
+    return data
+      .filter(item => item !== undefined)
+      .map(item => cleanForFirestore(item));
+  }
+  if (typeof data === 'object') {
+    const clean = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (!key || typeof key !== 'string') continue;
+      if (typeof value === 'function' || typeof value === 'symbol' || value === undefined) {
+        continue;
+      }
+      // Evitar anidamiento recursivo de 'info' dentro de 'info'
+      if (key === 'info' && value && typeof value === 'object' && value.name && data.name) {
+        continue;
+      }
+      clean[key.trim()] = cleanForFirestore(value);
+    }
+    return clean;
+  }
+  return String(data);
+}
+
+/**
  * Guardar o actualizar datos completos o parciales en Firestore
  */
 export async function saveFirebaseSiteData(data, merge = true) {
@@ -162,7 +194,16 @@ export async function saveFirebaseSiteData(data, merge = true) {
 
   try {
     const docRef = doc(firestoreDb, ...SITE_DOC_PATH);
-    const cleanData = JSON.parse(JSON.stringify(data)); // Asegurar que sea serializable
+    const cleanData = cleanForFirestore(data) || {};
+    
+    // Si info tiene anidamiento duplicado { info: { info: ... } }, aplanarlo
+    if (cleanData.info && typeof cleanData.info === 'object') {
+      if (cleanData.info.info && typeof cleanData.info.info === 'object') {
+        cleanData.info = { ...cleanData.info.info, ...cleanData.info };
+        delete cleanData.info.info;
+      }
+    }
+
     cleanData.lastUpdated = new Date().toISOString();
     
     await setDoc(docRef, cleanData, { merge });
@@ -183,7 +224,15 @@ export async function updateFirebaseSection(sectionKey, sectionData) {
 
   try {
     const docRef = doc(firestoreDb, ...SITE_DOC_PATH);
-    const cleanData = JSON.parse(JSON.stringify(sectionData));
+    let cleanData = cleanForFirestore(sectionData);
+
+    if (sectionKey === 'info' && cleanData && typeof cleanData === 'object') {
+      if (cleanData.info && typeof cleanData.info === 'object') {
+        cleanData = { ...cleanData.info, ...cleanData };
+      }
+      delete cleanData.info;
+    }
+
     await setDoc(docRef, {
       [sectionKey]: cleanData,
       lastUpdated: new Date().toISOString()
