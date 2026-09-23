@@ -14,6 +14,7 @@ import {
   getDownloadURL,
   deleteObject
 } from 'firebase/storage';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 
 // Clave en localStorage para configuración dinámica desde el Admin
 const FIREBASE_CONFIG_STORAGE_KEY = 'terjamanco_firebase_config';
@@ -97,6 +98,7 @@ export function saveFirebaseConfig(config) {
 let firebaseApp = null;
 let firestoreDb = null;
 let firebaseStorage = null;
+let firebaseAuth = null;
 
 export function isFirebaseConfigured() {
   const cfg = getStoredFirebaseConfig();
@@ -113,18 +115,24 @@ export function initFirebase(customConfig = null) {
     firebaseApp = null;
     firestoreDb = null;
     firebaseStorage = null;
+    firebaseAuth = null;
     return false;
   }
 
   try {
     if (getApps().length > 0) {
-      // Re-inicializar si la config cambió
       firebaseApp = getApp();
     } else {
       firebaseApp = initializeApp(config);
     }
     firestoreDb = getFirestore(firebaseApp);
     firebaseStorage = getStorage(firebaseApp);
+    try {
+      firebaseAuth = getAuth(firebaseApp);
+      signInAnonymously(firebaseAuth).catch(() => {});
+    } catch {
+      // Ignorar si auth ya está activo o no configurado
+    }
     return true;
   } catch (err) {
     console.error('🔥 Error inicializando Firebase:', err);
@@ -135,7 +143,7 @@ export function initFirebase(customConfig = null) {
 // Inicializar al cargar el módulo
 initFirebase();
 
-export { firestoreDb, firebaseStorage };
+export { firestoreDb, firebaseStorage, firebaseAuth };
 
 /**
  * Documento principal de contenido en Cloud Firestore:

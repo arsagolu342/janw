@@ -159,10 +159,18 @@ export function SiteDataProvider({ children }) {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
 
+  // Timestamp para proteger cambios recién guardados por el admin contra snapshots antiguos
+  const lastLocalUpdateRef = React.useRef({ info: 0, hero: 0 });
+
   // Aplicar datos entrantes de forma atómica
   const applyIncomingData = useCallback((data) => {
     if (!data) return;
-    if (data.info) {
+
+    // Verificar si se acaba de hacer una edición local en los últimos 20 segundos
+    const now = Date.now();
+    const isRecentInfoEdit = (now - (lastLocalUpdateRef.current.info || 0)) < 20000;
+
+    if (data.info && !isRecentInfoEdit) {
       let cleanInfo = data.info;
       if (cleanInfo.info && typeof cleanInfo.info === 'object' && !cleanInfo.name) {
         cleanInfo = cleanInfo.info;
@@ -391,6 +399,7 @@ export function SiteDataProvider({ children }) {
 
   // Mutaciones de datos
   const updateInfo = async (newInfo) => {
+    lastLocalUpdateRef.current.info = Date.now();
     let incoming = (newInfo && newInfo.info && typeof newInfo.info === 'object' && !newInfo.name) ? newInfo.info : newInfo;
     let current = (info && info.info && typeof info.info === 'object' && !info.name) ? info.info : info;
     const merged = { ...current, ...incoming };
