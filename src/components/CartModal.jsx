@@ -8,8 +8,11 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { TERJAMANCO_INFO } from '../data/terjamancoData';
+import { useSiteData } from '../context/SiteDataContext';
 
 export default function CartModal({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onClearCart }) {
+  const { info } = useSiteData();
+  const currentInfo = info || TERJAMANCO_INFO;
   if (!isOpen) return null;
 
   const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -21,12 +24,14 @@ export default function CartModal({ isOpen, onClose, cartItems, onUpdateQuantity
       (item, i) => `${i + 1}. ${item.name} (x${item.quantity}) - $${(item.price * item.quantity).toFixed(2)} USD`
     ).join('\n');
 
-    const text = `*PEDIDO DE SOUVENIRS & PRODUCTOS TERMALES - JAMANCO*\n\n` +
+    const company = currentInfo.name || 'Termales Jamanco';
+    const text = `*PEDIDO DE SOUVENIRS & PRODUCTOS TERMALES - ${company.toUpperCase()}*\n\n` +
       `*Artículos solicitados:*\n${itemsSummary}\n\n` +
       `*Total:* $${total.toFixed(2)} USD\n\n` +
-      `Hola Termales Jamanco, deseo coordinar el pago y entrega o retiro de estos productos.`;
+      `Hola ${company}, deseo coordinar el pago y entrega o retiro de estos productos.`;
 
-    window.open(`https://wa.me/${TERJAMANCO_INFO.whatsapp}?text=${encodeURIComponent(text)}`, '_blank');
+    const targetNumber = currentInfo.whatsapp || currentInfo.whatsappPhone || '593981385981';
+    window.open(`https://wa.me/${targetNumber}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   return (

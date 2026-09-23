@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import apiRoutes, { broadcastDataUpdate } from './routes/api.js';
@@ -27,7 +28,7 @@ readDb();
 
 // Middlewares
 app.use(cors({
-  origin: '*', // Permitir peticiones desde Vite y cualquier origen
+  origin: '*', // Permitir peticiones desde cualquier origen
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -53,6 +54,18 @@ app.get('/api/health', (req, res) => {
     firebaseProject: 'terjamancoweb'
   });
 });
+
+// Servir frontend compilado en producción (dist)
+const distPath = path.join(__dirname, '..', 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 // Manejo de errores global
 app.use((err, req, res, next) => {

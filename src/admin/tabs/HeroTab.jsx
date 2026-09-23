@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Save, Check, AlertCircle, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { useSiteData } from '../../context/SiteDataContext';
 import ImageUploader from '../components/ImageUploader';
@@ -8,6 +8,12 @@ export default function HeroTab() {
   const [formData, setFormData] = useState({ ...hero });
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
+
+  useEffect(() => {
+    if (hero) {
+      setFormData(prev => ({ ...prev, ...hero }));
+    }
+  }, [hero]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

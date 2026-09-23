@@ -9,8 +9,11 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { TERJAMANCO_INFO } from '../data/terjamancoData';
+import { useSiteData } from '../context/SiteDataContext';
 
 export default function BookingModal({ isOpen, onClose, initialData }) {
+  const { info } = useSiteData();
+  const currentInfo = info || TERJAMANCO_INFO;
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -32,16 +35,18 @@ export default function BookingModal({ isOpen, onClose, initialData }) {
   };
 
   const handleSendWhatsAppNotification = () => {
-    const text = `*SOLICITUD DE RESERVA WEB - TERMALES JAMANCO*\n\n` +
+    const company = currentInfo.name || 'Termales Jamanco';
+    const text = `*SOLICITUD DE RESERVA WEB - ${company.toUpperCase()}*\n\n` +
       `*Código:* ${bookingCode}\n` +
       `*Nombre:* ${formData.fullName}\n` +
       `*Teléfono:* ${formData.phone}\n` +
       `*Email:* ${formData.email || 'No especificado'}\n` +
       (initialData ? `*Paquete:* ${initialData.packageName}\n*Fecha:* ${initialData.date}\n*Total Estimado:* $${initialData.grandTotal?.toFixed(2)} USD\n` : '') +
       `*Comentarios:* ${formData.notes || 'Ninguno'}\n\n` +
-      `Hola Termales Jamanco, he registrado esta solicitud en su web. Deseo validar disponibilidad y cuenta para transferencia.`;
+      `Hola ${company}, he registrado esta solicitud en su web. Deseo validar disponibilidad y cuenta para transferencia.`;
 
-    window.open(`https://wa.me/${TERJAMANCO_INFO.whatsapp}?text=${encodeURIComponent(text)}`, '_blank');
+    const targetNumber = currentInfo.whatsapp || currentInfo.whatsappPhone || '593981385981';
+    window.open(`https://wa.me/${targetNumber}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const handleResetAndClose = () => {

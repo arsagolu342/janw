@@ -92,7 +92,7 @@ export default function Navbar({ cartCount, onOpenCart, onOpenBookingModal, onOp
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <a 
-              href={`https://wa.me/${currentInfo.whatsappPhone || '593988636952'}?text=Hola%20Termales%20Jamanco,%20deseo%20información%20y%20reservas`}
+              href={`https://wa.me/${currentInfo.whatsapp || currentInfo.whatsappPhone || '593981385981'}?text=Hola%20${encodeURIComponent(currentInfo.name || 'Termales Jamanco')},%20deseo%20información%20y%20reservas`}
               target="_blank"
               rel="noopener noreferrer"
               className="top-bar-link"
@@ -234,7 +234,7 @@ export default function Navbar({ cartCount, onOpenCart, onOpenBookingModal, onOp
 
               <div className="mobile-quick-actions">
                 <a
-                  href={`https://wa.me/${currentInfo.whatsappPhone || '593988636952'}?text=Hola%20Termales%20Jamanco,%20deseo%20información`}
+                  href={`https://wa.me/${currentInfo.whatsapp || currentInfo.whatsappPhone || '593981385981'}?text=Hola%20${encodeURIComponent(currentInfo.name || 'Termales Jamanco')},%20deseo%20información`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mobile-action-pill"
@@ -243,7 +243,7 @@ export default function Navbar({ cartCount, onOpenCart, onOpenBookingModal, onOp
                   <span>WhatsApp</span>
                 </a>
                 <a
-                  href={`tel:${currentInfo.phone || '+593988636952'}`}
+                  href={`tel:${currentInfo.phone || '+593981385981'}`}
                   className="mobile-action-pill"
                 >
                   <PhoneCall size={16} color="var(--accent-teal)" />

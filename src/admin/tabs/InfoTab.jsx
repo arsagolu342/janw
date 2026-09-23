@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Save, 
   Check, 
@@ -25,35 +25,121 @@ import { useSiteData } from '../../context/SiteDataContext';
 import { apiUploadImage } from '../../services/api';
 import Logo from '../../components/Logo';
 
+// Helper de compresión y lectura de imágenes de logotipo optimizado para Web y Cloud Firestore (< 35KB)
+export function compressAndReadLogoImage(fileOrBase64, maxWidth = 256, maxHeight = 256, quality = 0.88) {
+  return new Promise((resolve) => {
+    if (!fileOrBase64) return resolve('');
+
+    if (typeof fileOrBase64 === 'string') {
+      if (!fileOrBase64.startsWith('data:image/')) return resolve(fileOrBase64);
+      if (fileOrBase64.length < 50000) return resolve(fileOrBase64); // ya es liviano
+      
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round(height * (maxWidth / width));
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round(width * (maxHeight / height));
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const isPng = fileOrBase64.startsWith('data:image/png');
+        resolve(canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', quality));
+      };
+      img.onerror = () => resolve(fileOrBase64);
+      img.src = fileOrBase64;
+      return;
+    }
+
+    const file = fileOrBase64;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round(height * (maxWidth / width));
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round(width * (maxHeight / height));
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const isPng = file.type === 'image/png';
+        const compressedDataUrl = canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function InfoTab() {
   const { info, updateInfo } = useSiteData();
-  const [formData, setFormData] = useState({
-    name: info?.name || 'Termales Jamanco',
-    alias: info?.alias || 'Terjamanco Papallacta',
-    logoType: info?.logoType || (info?.logoUrl ? 'image' : 'emblem'),
-    logoUrl: info?.logoUrl || '',
-    logoSubtext: info?.logoSubtext || 'Papallacta • Ecuador',
-    tagline: info?.tagline || '',
-    origin: info?.origin || '',
-    phone: info?.phone || '',
-    whatsapp: info?.whatsapp || '',
-    email: info?.email || '',
-    facebookHandle: info?.facebookHandle || '',
-    facebookUrl: info?.facebookUrl || '',
-    address: info?.address || '',
-    hours1: info?.hours1 || '',
-    hours2: info?.hours2 || '',
-    hoursMirador: info?.hoursMirador || '',
-    waterTempRange: info?.waterTempRange || '37°C - 44°C',
-    poolsCount: info?.poolsCount || 10,
-    rating: info?.rating || 4.9,
-    reviewsCount: info?.reviewsCount || 2840
+  
+  const getInitialFormData = (data) => ({
+    name: data?.name || 'Termales Jamanco',
+    alias: data?.alias || 'Terjamanco Papallacta',
+    logoType: data?.logoType || (data?.logoUrl ? 'image' : 'emblem'),
+    logoUrl: data?.logoUrl || '',
+    logoSubtext: data?.logoSubtext || 'Papallacta • Ecuador',
+    tagline: data?.tagline || '',
+    origin: data?.origin || '',
+    phone: data?.phone || '',
+    whatsapp: data?.whatsapp || '',
+    email: data?.email || '',
+    facebookHandle: data?.facebookHandle || '',
+    facebookUrl: data?.facebookUrl || '',
+    address: data?.address || '',
+    hours1: data?.hours1 || '',
+    hours2: data?.hours2 || '',
+    hoursMirador: data?.hoursMirador || '',
+    waterTempRange: data?.waterTempRange || '37°C - 44°C',
+    poolsCount: data?.poolsCount || 10,
+    rating: data?.rating || 4.9,
+    reviewsCount: data?.reviewsCount || 2840
   });
 
+  const [formData, setFormData] = useState(() => getInitialFormData(info));
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Sincronizar automáticamente el formulario cuando los datos en contexto o servidor se actualizan
+  useEffect(() => {
+    if (info) {
+      setFormData(prev => ({
+        ...prev,
+        ...getInitialFormData(info)
+      }));
+    }
+  }, [info]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -63,7 +149,7 @@ export default function InfoTab() {
     }));
   };
 
-  // Subir archivo de imagen para el Logotipo
+  // Subir archivo de imagen para el Logotipo con compresión y carga dual (inmediata + backend)
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -78,33 +164,29 @@ export default function InfoTab() {
       setUploadingLogo(true);
       setFeedback(null);
 
-      // 1. Cargar como DataURL de forma instantánea para vista previa y guardado garantizado
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const localDataUrl = event.target.result;
-        setFormData(prev => ({
-          ...prev,
-          logoUrl: localDataUrl,
-          logoType: 'image'
-        }));
+      // 1. Comprimir imagen y generar DataURL optimizado de forma instantánea
+      const optimizedDataUrl = await compressAndReadLogoImage(file);
+      setFormData(prev => ({
+        ...prev,
+        logoUrl: optimizedDataUrl,
+        logoType: 'image'
+      }));
 
-        // 2. Intentar subida física al servidor si está activo
-        try {
-          const res = await apiUploadImage(file);
-          if (res && res.url) {
-            setFormData(prev => ({
-              ...prev,
-              logoUrl: res.url,
-              logoType: 'image'
-            }));
-          }
-        } catch (uploadErr) {
-          console.warn('Backend upload offline, usando imagen local en memoria:', uploadErr.message);
+      // 2. Subir al backend o Cloud Storage si está conectado
+      try {
+        const res = await apiUploadImage(file);
+        if (res && res.url) {
+          setFormData(prev => ({
+            ...prev,
+            logoUrl: res.url,
+            logoType: 'image'
+          }));
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (uploadErr) {
+        console.warn('Backend upload offline, usando imagen optimizada localmente:', uploadErr.message);
+      }
 
-      setFeedback({ type: 'success', text: '¡Imagen de logotipo lista! Haz clic en "Guardar Todo" para aplicarla en la web.' });
+      setFeedback({ type: 'success', text: '¡Imagen de logotipo cargada exitosamente! Haz clic en "Guardar Todo" para aplicarla.' });
       setTimeout(() => setFeedback(null), 3500);
     } catch (err) {
       console.error(err);
@@ -133,13 +215,20 @@ export default function InfoTab() {
     setSaving(true);
     setFeedback(null);
     try {
-      await updateInfo({
+      let cleanLogoUrl = formData.logoUrl || '';
+      if (formData.logoType === 'image' && cleanLogoUrl && cleanLogoUrl.startsWith('data:image/')) {
+        cleanLogoUrl = await compressAndReadLogoImage(cleanLogoUrl);
+      }
+
+      const payload = {
         ...formData,
+        logoUrl: cleanLogoUrl,
         rating: Number(formData.rating) || 4.9,
         reviewsCount: Number(formData.reviewsCount) || 2840,
         poolsCount: Number(formData.poolsCount) || 10
-      });
-      setFeedback({ type: 'success', text: '¡Información de la empresa y logotipo guardados exitosamente!' });
+      };
+      await updateInfo(payload);
+      setFeedback({ type: 'success', text: '¡Información de la empresa y logotipo guardados y sincronizados en la nube exitosamente!' });
       setTimeout(() => setFeedback(null), 3500);
     } catch (err) {
       setFeedback({ type: 'error', text: err.message || 'Error al guardar la información' });

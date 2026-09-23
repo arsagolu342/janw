@@ -131,16 +131,16 @@ export default function Logo({
         style={{
           width: `${size}px`,
           height: `${size}px`,
-          borderRadius: '12px',
+          borderRadius: '10px',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'rgba(255, 255, 255, 0.06)',
-          border: '1px solid rgba(56, 189, 248, 0.35)',
-          boxShadow: '0 4px 14px rgba(6, 182, 212, 0.25)',
+          background: '#ffffff',
+          border: '1.5px solid rgba(45, 212, 191, 0.5)',
+          boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
           flexShrink: 0,
-          padding: '2px',
+          padding: '4px',
           transition: 'transform 0.3s ease'
         }}
         className="brand-logo-img-wrapper"
