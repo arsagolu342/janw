@@ -35,6 +35,8 @@ import {
   apiAddSoundTrack,
   apiDeleteSoundTrack,
   apiResetFactory,
+  apiGetFirebaseStatus,
+  apiSyncFirebase,
   setAuthToken,
   getAuthToken
 } from '../services/api';
@@ -167,6 +169,7 @@ export function SiteDataProvider({ children }) {
   }, []);
 
   // Cargar datos iniciales
+  // Cargar datos iniciales
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -183,10 +186,59 @@ export function SiteDataProvider({ children }) {
     }
   }, [applyIncomingData]);
 
-  // Suscripción en Tiempo Real a Firebase Firestore (si está configurado)
+  // Sincronización en Tiempo Real bidireccional (SSE) entre Administrador y Público
+  useEffect(() => {
+    let eventSource = null;
+    let reconnectTimeout = null;
+
+    const connectSSE = () => {
+      try {
+        eventSource = new EventSource('/api/events');
+        
+        eventSource.onopen = () => {
+          setIsServerOnline(true);
+        };
+
+        eventSource.onmessage = (e) => {
+          try {
+            const parsed = JSON.parse(e.data);
+            if (parsed.data) {
+              applyIncomingData(parsed.data);
+              setIsServerOnline(true);
+              setIsLoading(false);
+            }
+          } catch (err) {
+            console.warn('Error procesando evento en tiempo real:', err);
+          }
+        };
+
+        eventSource.onerror = () => {
+          eventSource?.close();
+          reconnectTimeout = setTimeout(connectSSE, 4000);
+        };
+      } catch (err) {
+        console.warn('Error iniciando EventSource SSE:', err);
+      }
+    };
+
+    connectSSE();
+
+    // Consultar estado de Firebase Cloud (terjamancoweb)
+    apiGetFirebaseStatus().then((res) => {
+      if (res && res.connected) {
+        setIsFirebaseOnline(true);
+      }
+    }).catch(() => {});
+
+    return () => {
+      if (eventSource) eventSource.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    };
+  }, [applyIncomingData]);
+
+  // Suscripción en Tiempo Real directa a Firebase Firestore (si SDK cliente está configurado)
   useEffect(() => {
     if (!isFirebaseConfigured()) {
-      setIsFirebaseOnline(false);
       return;
     }
 
@@ -230,28 +282,39 @@ export function SiteDataProvider({ children }) {
 
   // Sincronizar todos los datos actuales a Firebase (Seeding / Migración a la Nube)
   const syncAllToFirebase = async () => {
-    if (!isFirebaseConfigured()) {
-      throw new Error('Debes configurar las credenciales de Firebase primero.');
+    try {
+      const res = await apiSyncFirebase();
+      if (res && res.success) {
+        setIsFirebaseOnline(true);
+        setLastSync(new Date());
+        return res;
+      }
+    } catch (e) {
+      console.warn('Error en apiSyncFirebase:', e);
     }
 
-    const payload = {
-      info,
-      hero,
-      minerals,
-      zones,
-      services,
-      products,
-      packages,
-      gallery,
-      reviews,
-      faqs,
-      soundSettings
-    };
+    if (isFirebaseConfigured()) {
+      const payload = {
+        info,
+        hero,
+        minerals,
+        zones,
+        services,
+        products,
+        packages,
+        gallery,
+        reviews,
+        faqs,
+        soundSettings
+      };
 
-    const res = await saveFirebaseSiteData(payload, false);
-    setIsFirebaseOnline(true);
-    setLastSync(new Date());
-    return res;
+      const res = await saveFirebaseSiteData(payload, false);
+      setIsFirebaseOnline(true);
+      setLastSync(new Date());
+      return res;
+    }
+
+    throw new Error('Error al sincronizar con Firebase.');
   };
 
   // Configurar Firebase dinámicamente desde el Admin

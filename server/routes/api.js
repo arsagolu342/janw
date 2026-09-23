@@ -1,19 +1,144 @@
 import express from 'express';
-import { readDb, writeDb, resetDb } from '../utils/db.js';
+import { readDb, writeDb, resetDb, INITIAL_DATA } from '../utils/db.js';
+import { 
+  initFirebaseAdmin, 
+  getFirestoreSiteData, 
+  saveFirestoreSiteData, 
+  updateFirestoreSection 
+} from '../utils/firebaseAdmin.js';
 
 const router = express.Router();
+
+// Lista de clientes SSE conectados para actualizaciones en tiempo real
+const sseClients = new Set();
+
+/**
+ * Transmite la actualización de datos a todos los clientes públicos conectados
+ */
+export function broadcastDataUpdate(data) {
+  const payload = JSON.stringify({ type: 'DATA_UPDATE', data, timestamp: new Date().toISOString() });
+  for (const client of sseClients) {
+    try {
+      client.write(`data: ${payload}\n\n`);
+    } catch (e) {
+      sseClients.delete(client);
+    }
+  }
+}
+
+/**
+ * Helper para persistir en disco y en Cloud Firestore, y notificar a los clientes
+ */
+async function syncAndBroadcast(updatedDb, sectionKey = null, sectionData = null) {
+  writeDb(updatedDb);
+  const { adminSettings, ...publicData } = updatedDb;
+
+  // Notificar a todos los usuarios públicos en tiempo real
+  broadcastDataUpdate(publicData);
+
+  // Sincronizar en segundo plano a Cloud Firestore
+  try {
+    if (sectionKey && sectionData !== null) {
+      await updateFirestoreSection(sectionKey, sectionData);
+    } else {
+      await saveFirestoreSiteData(publicData, true);
+    }
+  } catch (err) {
+    console.warn('⚠️ Error sincronizando a Firestore:', err.message);
+  }
+}
+
+/**
+ * GET /api/events
+ * Endpoint Server-Sent Events (SSE) para sincronización en tiempo real con el público
+ */
+router.get('/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  // Enviar mensaje de bienvenida con el estado inicial
+  const db = readDb();
+  const { adminSettings, ...publicData } = db;
+  res.write(`data: ${JSON.stringify({ type: 'CONNECTED', data: publicData, timestamp: new Date().toISOString() })}\n\n`);
+
+  sseClients.add(res);
+
+  req.on('close', () => {
+    sseClients.delete(res);
+  });
+});
+
+/**
+ * GET /api/firebase/status
+ * Devuelve el estado de la conexión a Firebase Firestore
+ */
+router.get('/firebase/status', async (req, res) => {
+  try {
+    const { firestore, isInitialized } = initFirebaseAdmin();
+    if (!isInitialized || !firestore) {
+      return res.json({
+        connected: false,
+        projectId: 'terjamancoweb',
+        message: 'Firebase Admin no inicializado'
+      });
+    }
+
+    // Probar lectura de Firestore
+    const siteData = await getFirestoreSiteData();
+
+    return res.json({
+      connected: true,
+      projectId: 'terjamancoweb',
+      clientEmail: 'firebase-adminsdk-fbsvc@terjamancoweb.iam.gserviceaccount.com',
+      firestoreCollection: 'terjamanco_site',
+      firestoreDoc: 'main_content',
+      hasCloudData: !!siteData,
+      connectedClientsCount: sseClients.size,
+      message: 'Conexión activa y sincronizada con Google Cloud Firestore'
+    });
+  } catch (err) {
+    return res.json({
+      connected: false,
+      projectId: 'terjamancoweb',
+      error: err.message
+    });
+  }
+});
+
+/**
+ * POST /api/firebase/sync
+ * Fuerza la sincronización de todos los datos locales hacia Firestore
+ */
+router.post('/firebase/sync', async (req, res) => {
+  try {
+    const db = readDb();
+    const { adminSettings, ...publicData } = db;
+    const result = await saveFirestoreSiteData(publicData, false);
+    broadcastDataUpdate(publicData);
+    return res.json({
+      success: true,
+      message: 'Datos sincronizados exitosamente con Google Cloud Firestore',
+      result
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Error sincronizando con Firebase' });
+  }
+});
 
 /**
  * GET /api/data
  * Retorna todos los datos para inicializar el sitio o el panel
  */
-router.get('/data', (req, res) => {
+router.get('/data', async (req, res) => {
   try {
     const db = readDb();
     const { adminSettings, ...publicData } = db;
     return res.json({
       success: true,
-      data: publicData
+      data: publicData,
+      firebaseProject: 'terjamancoweb'
     });
   } catch (error) {
     console.error('Error obteniendo datos:', error);
@@ -25,11 +150,11 @@ router.get('/data', (req, res) => {
  * PUT /api/data/info
  * Actualizar información general de Jamanco
  */
-router.put('/data/info', (req, res) => {
+router.put('/data/info', async (req, res) => {
   try {
     const db = readDb();
     db.info = { ...db.info, ...req.body };
-    writeDb(db);
+    await syncAndBroadcast(db, 'info', db.info);
     return res.json({ success: true, message: 'Información general actualizada', info: db.info });
   } catch (error) {
     console.error('Error actualizando info:', error);
@@ -41,11 +166,11 @@ router.put('/data/info', (req, res) => {
  * PUT /api/data/hero
  * Actualizar textos e imágenes del Hero
  */
-router.put('/data/hero', (req, res) => {
+router.put('/data/hero', async (req, res) => {
   try {
     const db = readDb();
     db.hero = { ...db.hero, ...req.body };
-    writeDb(db);
+    await syncAndBroadcast(db, 'hero', db.hero);
     return res.json({ success: true, message: 'Sección Hero actualizada', hero: db.hero });
   } catch (error) {
     console.error('Error actualizando hero:', error);
@@ -57,12 +182,12 @@ router.put('/data/hero', (req, res) => {
  * PUT /api/data/minerals
  * Actualizar datos de minerales
  */
-router.put('/data/minerals', (req, res) => {
+router.put('/data/minerals', async (req, res) => {
   try {
     const db = readDb();
     if (Array.isArray(req.body)) {
       db.minerals = req.body;
-      writeDb(db);
+      await syncAndBroadcast(db, 'minerals', db.minerals);
       return res.json({ success: true, message: 'Minerales actualizados', minerals: db.minerals });
     }
     return res.status(400).json({ error: 'Se esperaba un array de minerales' });
@@ -79,7 +204,7 @@ router.get('/zones', (req, res) => {
   res.json({ success: true, zones: db.zones });
 });
 
-router.post('/zones', (req, res) => {
+router.post('/zones', async (req, res) => {
   try {
     const db = readDb();
     const newZone = {
@@ -93,32 +218,32 @@ router.post('/zones', (req, res) => {
       features: Array.isArray(req.body.features) ? req.body.features : []
     };
     db.zones.push(newZone);
-    writeDb(db);
+    await syncAndBroadcast(db, 'zones', db.zones);
     res.json({ success: true, zone: newZone });
   } catch (error) {
     res.status(500).json({ error: 'Error al crear sede' });
   }
 });
 
-router.put('/zones/:id', (req, res) => {
+router.put('/zones/:id', async (req, res) => {
   try {
     const db = readDb();
     const index = db.zones.findIndex(z => z.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: 'Sede no encontrada' });
 
     db.zones[index] = { ...db.zones[index], ...req.body };
-    writeDb(db);
+    await syncAndBroadcast(db, 'zones', db.zones);
     res.json({ success: true, zone: db.zones[index] });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar sede' });
   }
 });
 
-router.delete('/zones/:id', (req, res) => {
+router.delete('/zones/:id', async (req, res) => {
   try {
     const db = readDb();
     db.zones = db.zones.filter(z => z.id !== req.params.id);
-    writeDb(db);
+    await syncAndBroadcast(db, 'zones', db.zones);
     res.json({ success: true, message: 'Sede eliminada' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar sede' });
@@ -133,7 +258,7 @@ router.get('/services', (req, res) => {
   res.json({ success: true, services: db.services });
 });
 
-router.post('/services', (req, res) => {
+router.post('/services', async (req, res) => {
   try {
     const db = readDb();
     const newService = {
@@ -149,14 +274,14 @@ router.post('/services', (req, res) => {
       included: Array.isArray(req.body.included) ? req.body.included : []
     };
     db.services.push(newService);
-    writeDb(db);
+    await syncAndBroadcast(db, 'services', db.services);
     res.json({ success: true, service: newService });
   } catch (error) {
     res.status(500).json({ error: 'Error al crear servicio' });
   }
 });
 
-router.put('/services/:id', (req, res) => {
+router.put('/services/:id', async (req, res) => {
   try {
     const db = readDb();
     const index = db.services.findIndex(s => s.id === req.params.id);
@@ -167,18 +292,18 @@ router.put('/services/:id', (req, res) => {
       ...req.body,
       price: req.body.price !== undefined ? Number(req.body.price) : db.services[index].price 
     };
-    writeDb(db);
+    await syncAndBroadcast(db, 'services', db.services);
     res.json({ success: true, service: db.services[index] });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar servicio' });
   }
 });
 
-router.delete('/services/:id', (req, res) => {
+router.delete('/services/:id', async (req, res) => {
   try {
     const db = readDb();
     db.services = db.services.filter(s => s.id !== req.params.id);
-    writeDb(db);
+    await syncAndBroadcast(db, 'services', db.services);
     res.json({ success: true, message: 'Servicio eliminado' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar servicio' });
@@ -193,7 +318,7 @@ router.get('/products', (req, res) => {
   res.json({ success: true, products: db.products });
 });
 
-router.post('/products', (req, res) => {
+router.post('/products', async (req, res) => {
   try {
     const db = readDb();
     const newProduct = {
@@ -210,14 +335,14 @@ router.post('/products', (req, res) => {
       benefits: Array.isArray(req.body.benefits) ? req.body.benefits : []
     };
     db.products.push(newProduct);
-    writeDb(db);
+    await syncAndBroadcast(db, 'products', db.products);
     res.json({ success: true, product: newProduct });
   } catch (error) {
     res.status(500).json({ error: 'Error al crear producto' });
   }
 });
 
-router.put('/products/:id', (req, res) => {
+router.put('/products/:id', async (req, res) => {
   try {
     const db = readDb();
     const index = db.products.findIndex(p => p.id === req.params.id);
@@ -229,18 +354,18 @@ router.put('/products/:id', (req, res) => {
       price: req.body.price !== undefined ? Number(req.body.price) : db.products[index].price,
       oldPrice: req.body.oldPrice !== undefined ? (req.body.oldPrice ? Number(req.body.oldPrice) : null) : db.products[index].oldPrice
     };
-    writeDb(db);
+    await syncAndBroadcast(db, 'products', db.products);
     res.json({ success: true, product: db.products[index] });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar producto' });
   }
 });
 
-router.delete('/products/:id', (req, res) => {
+router.delete('/products/:id', async (req, res) => {
   try {
     const db = readDb();
     db.products = db.products.filter(p => p.id !== req.params.id);
-    writeDb(db);
+    await syncAndBroadcast(db, 'products', db.products);
     res.json({ success: true, message: 'Producto eliminado' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar producto' });
@@ -255,7 +380,7 @@ router.get('/packages', (req, res) => {
   res.json({ success: true, packages: db.packages });
 });
 
-router.post('/packages', (req, res) => {
+router.post('/packages', async (req, res) => {
   try {
     const db = readDb();
     const newPkg = {
@@ -270,14 +395,14 @@ router.post('/packages', (req, res) => {
       features: Array.isArray(req.body.features) ? req.body.features : []
     };
     db.packages.push(newPkg);
-    writeDb(db);
+    await syncAndBroadcast(db, 'packages', db.packages);
     res.json({ success: true, package: newPkg });
   } catch (error) {
     res.status(500).json({ error: 'Error al crear paquete' });
   }
 });
 
-router.put('/packages/:id', (req, res) => {
+router.put('/packages/:id', async (req, res) => {
   try {
     const db = readDb();
     const index = db.packages.findIndex(p => p.id === req.params.id);
@@ -289,18 +414,18 @@ router.put('/packages/:id', (req, res) => {
       priceAdult: req.body.priceAdult !== undefined ? Number(req.body.priceAdult) : db.packages[index].priceAdult,
       priceChild: req.body.priceChild !== undefined ? Number(req.body.priceChild) : db.packages[index].priceChild
     };
-    writeDb(db);
+    await syncAndBroadcast(db, 'packages', db.packages);
     res.json({ success: true, package: db.packages[index] });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar paquete' });
   }
 });
 
-router.delete('/packages/:id', (req, res) => {
+router.delete('/packages/:id', async (req, res) => {
   try {
     const db = readDb();
     db.packages = db.packages.filter(p => p.id !== req.params.id);
-    writeDb(db);
+    await syncAndBroadcast(db, 'packages', db.packages);
     res.json({ success: true, message: 'Paquete eliminado' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar paquete' });
@@ -315,7 +440,7 @@ router.get('/gallery', (req, res) => {
   res.json({ success: true, gallery: db.gallery });
 });
 
-router.post('/gallery', (req, res) => {
+router.post('/gallery', async (req, res) => {
   try {
     const db = readDb();
     const newPhoto = {
@@ -324,19 +449,19 @@ router.post('/gallery', (req, res) => {
       title: req.body.title || 'Foto de Jamanco',
       category: req.body.category || 'General'
     };
-    db.gallery.unshift(newPhoto); // agregar al inicio
-    writeDb(db);
+    db.gallery.unshift(newPhoto);
+    await syncAndBroadcast(db, 'gallery', db.gallery);
     res.json({ success: true, photo: newPhoto });
   } catch (error) {
     res.status(500).json({ error: 'Error al agregar foto a la galería' });
   }
 });
 
-router.delete('/gallery/:id', (req, res) => {
+router.delete('/gallery/:id', async (req, res) => {
   try {
     const db = readDb();
     db.gallery = db.gallery.filter(g => g.id !== req.params.id);
-    writeDb(db);
+    await syncAndBroadcast(db, 'gallery', db.gallery);
     res.json({ success: true, message: 'Foto eliminada' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar foto' });
@@ -351,7 +476,7 @@ router.get('/reviews', (req, res) => {
   res.json({ success: true, reviews: db.reviews });
 });
 
-router.post('/reviews', (req, res) => {
+router.post('/reviews', async (req, res) => {
   try {
     const db = readDb();
     const newRev = {
@@ -364,32 +489,32 @@ router.post('/reviews', (req, res) => {
       avatar: req.body.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'
     };
     db.reviews.unshift(newRev);
-    writeDb(db);
+    await syncAndBroadcast(db, 'reviews', db.reviews);
     res.json({ success: true, review: newRev });
   } catch (error) {
     res.status(500).json({ error: 'Error al agregar reseña' });
   }
 });
 
-router.put('/reviews/:id', (req, res) => {
+router.put('/reviews/:id', async (req, res) => {
   try {
     const db = readDb();
     const index = db.reviews.findIndex(r => String(r.id) === String(req.params.id));
     if (index === -1) return res.status(404).json({ error: 'Reseña no encontrada' });
 
     db.reviews[index] = { ...db.reviews[index], ...req.body };
-    writeDb(db);
+    await syncAndBroadcast(db, 'reviews', db.reviews);
     res.json({ success: true, review: db.reviews[index] });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar reseña' });
   }
 });
 
-router.delete('/reviews/:id', (req, res) => {
+router.delete('/reviews/:id', async (req, res) => {
   try {
     const db = readDb();
     db.reviews = db.reviews.filter(r => String(r.id) !== String(req.params.id));
-    writeDb(db);
+    await syncAndBroadcast(db, 'reviews', db.reviews);
     res.json({ success: true, message: 'Reseña eliminada' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar reseña' });
@@ -404,7 +529,7 @@ router.get('/faqs', (req, res) => {
   res.json({ success: true, faqs: db.faqs });
 });
 
-router.post('/faqs', (req, res) => {
+router.post('/faqs', async (req, res) => {
   try {
     const db = readDb();
     const newFaq = {
@@ -413,32 +538,32 @@ router.post('/faqs', (req, res) => {
       answer: req.body.answer || 'Respuesta'
     };
     db.faqs.push(newFaq);
-    writeDb(db);
+    await syncAndBroadcast(db, 'faqs', db.faqs);
     res.json({ success: true, faq: newFaq });
   } catch (error) {
     res.status(500).json({ error: 'Error al crear FAQ' });
   }
 });
 
-router.put('/faqs/:id', (req, res) => {
+router.put('/faqs/:id', async (req, res) => {
   try {
     const db = readDb();
     const index = db.faqs.findIndex(f => f.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: 'FAQ no encontrada' });
 
     db.faqs[index] = { ...db.faqs[index], ...req.body };
-    writeDb(db);
+    await syncAndBroadcast(db, 'faqs', db.faqs);
     res.json({ success: true, faq: db.faqs[index] });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar FAQ' });
   }
 });
 
-router.delete('/faqs/:id', (req, res) => {
+router.delete('/faqs/:id', async (req, res) => {
   try {
     const db = readDb();
     db.faqs = db.faqs.filter(f => f.id !== req.params.id);
-    writeDb(db);
+    await syncAndBroadcast(db, 'faqs', db.faqs);
     res.json({ success: true, message: 'FAQ eliminada' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar FAQ' });
@@ -457,21 +582,21 @@ router.get('/sound', (req, res) => {
   }
 });
 
-router.put('/sound', (req, res) => {
+router.put('/sound', async (req, res) => {
   try {
     const db = readDb();
     db.soundSettings = {
       ...db.soundSettings,
       ...req.body
     };
-    writeDb(db);
+    await syncAndBroadcast(db, 'soundSettings', db.soundSettings);
     res.json({ success: true, message: 'Configuración de sonido actualizada', soundSettings: db.soundSettings });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar configuración de sonido' });
   }
 });
 
-router.post('/sound/tracks', (req, res) => {
+router.post('/sound/tracks', async (req, res) => {
   try {
     const db = readDb();
     const newTrack = {
@@ -495,14 +620,14 @@ router.post('/sound/tracks', (req, res) => {
     }
 
     db.soundSettings.tracks.push(newTrack);
-    writeDb(db);
+    await syncAndBroadcast(db, 'soundSettings', db.soundSettings);
     res.json({ success: true, message: 'Pista de sonido agregada', track: newTrack, soundSettings: db.soundSettings });
   } catch (error) {
     res.status(500).json({ error: 'Error al agregar pista de sonido' });
   }
 });
 
-router.delete('/sound/tracks/:id', (req, res) => {
+router.delete('/sound/tracks/:id', async (req, res) => {
   try {
     const db = readDb();
     if (!db.soundSettings || !Array.isArray(db.soundSettings.tracks)) {
@@ -516,7 +641,7 @@ router.delete('/sound/tracks/:id', (req, res) => {
       db.soundSettings.activeTrackId = db.soundSettings.tracks[0].id;
     }
 
-    writeDb(db);
+    await syncAndBroadcast(db, 'soundSettings', db.soundSettings);
     res.json({ success: true, message: 'Pista eliminada', soundSettings: db.soundSettings });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar pista de sonido' });
@@ -526,9 +651,11 @@ router.delete('/sound/tracks/:id', (req, res) => {
 // ==========================================
 // ADMINISTRACIÓN: RESTAURAR Y RESPALDOS
 // ==========================================
-router.post('/data/reset', (req, res) => {
+router.post('/data/reset', async (req, res) => {
   try {
     const resetData = resetDb();
+    const { adminSettings, ...publicData } = resetData;
+    await syncAndBroadcast(resetData);
     res.json({ success: true, message: 'Base de datos restaurada a valores de fábrica', data: resetData });
   } catch (error) {
     res.status(500).json({ error: 'Error al restaurar base de datos' });
@@ -546,13 +673,13 @@ router.get('/data/backup', (req, res) => {
   }
 });
 
-router.post('/data/restore', (req, res) => {
+router.post('/data/restore', async (req, res) => {
   try {
     const importedData = req.body;
     if (!importedData || typeof importedData !== 'object' || !importedData.info) {
       return res.status(400).json({ error: 'Formato de respaldo inválido' });
     }
-    writeDb(importedData);
+    await syncAndBroadcast(importedData);
     res.json({ success: true, message: 'Copia de seguridad restaurada con éxito' });
   } catch (error) {
     res.status(500).json({ error: 'Error restaurando respaldo' });

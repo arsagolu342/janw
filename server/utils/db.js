@@ -18,7 +18,7 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 // Datos iniciales de fábrica (Seed)
-const INITIAL_DATA = {
+export const INITIAL_DATA = {
   info: {
     name: "Termales Jamanco",
     alias: "Terjamanco Papallacta",

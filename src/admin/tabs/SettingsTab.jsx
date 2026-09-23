@@ -16,7 +16,7 @@ import {
   ExternalLink,
   Code2
 } from 'lucide-react';
-import { apiChangePassword, apiRestoreBackup } from '../../services/api';
+import { apiChangePassword, apiRestoreBackup, apiGetFirebaseStatus, apiSyncFirebase } from '../../services/api';
 import { useSiteData } from '../../context/SiteDataContext';
 
 export default function SettingsTab() {
@@ -42,12 +42,15 @@ export default function SettingsTab() {
   const [systemFeedback, setSystemFeedback] = useState(null);
   const [isResetting, setIsResetting] = useState(false);
 
+  // Estado del servidor backend y Firebase Admin
+  const [serverFirebaseStatus, setServerFirebaseStatus] = useState(null);
+
   // Estados de Firebase Cloud
   const [firebaseForm, setFirebaseForm] = useState({
     apiKey: '',
     authDomain: '',
-    projectId: '',
-    storageBucket: '',
+    projectId: 'terjamancoweb',
+    storageBucket: 'terjamancoweb.firebasestorage.app',
     messagingSenderId: '',
     appId: ''
   });
@@ -58,15 +61,19 @@ export default function SettingsTab() {
   const [isSyncingFb, setIsSyncingFb] = useState(false);
   const [isSavingFb, setIsSavingFb] = useState(false);
 
-  // Cargar config actual de Firebase
+  // Cargar estado de Firebase Admin y config actual
   useEffect(() => {
+    apiGetFirebaseStatus().then((res) => {
+      setServerFirebaseStatus(res);
+    }).catch(() => {});
+
     const currentFb = getStoredFirebaseConfig();
     if (currentFb) {
       setFirebaseForm({
         apiKey: currentFb.apiKey || '',
         authDomain: currentFb.authDomain || '',
-        projectId: currentFb.projectId || '',
-        storageBucket: currentFb.storageBucket || '',
+        projectId: currentFb.projectId || 'terjamancoweb',
+        storageBucket: currentFb.storageBucket || 'terjamancoweb.firebasestorage.app',
         messagingSenderId: currentFb.messagingSenderId || '',
         appId: currentFb.appId || ''
       });
@@ -297,7 +304,43 @@ export default function SettingsTab() {
               background: isFirebaseOnline ? '#10b981' : '#f59e0b',
               boxShadow: isFirebaseOnline ? '0 0 8px #10b981' : '0 0 8px #f59e0b'
             }} />
-            {isFirebaseOnline ? '🟢 Firebase Cloud Sincronizado 100%' : '🟡 Modo Local (Sin Conexión Cloud)'}
+            {isFirebaseOnline || serverFirebaseStatus?.connected ? '🟢 Firebase Cloud Sincronizado 100%' : '🟡 Modo Local (Sin Conexión Cloud)'}
+          </div>
+        </div>
+
+        {/* Info del Proyecto de Firebase Configurado */}
+        <div style={{
+          background: 'rgba(6, 17, 24, 0.75)',
+          padding: '1rem 1.25rem',
+          borderRadius: 'var(--radius-sm)',
+          border: '1px solid rgba(16, 185, 129, 0.3)',
+          marginBottom: '1.25rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: '600' }}>
+              🔥 Proyecto Activo: <span style={{ color: '#34d399', fontFamily: 'monospace' }}>terjamancoweb</span>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#93c5fd' }}>
+              Cuenta de Servicio: <span style={{ fontFamily: 'monospace' }}>firebase-adminsdk-fbsvc@terjamancoweb.iam.gserviceaccount.com</span>
+            </div>
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            Colección Firestore: <code style={{ color: 'var(--accent-teal)' }}>terjamanco_site / main_content</code> • Conexión en vivo con el público activa.
+          </div>
+          <div style={{ marginTop: '0.35rem' }}>
+            <button
+              type="button"
+              onClick={handleSyncToFirebase}
+              disabled={isSyncingFb}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}
+            >
+              <Database size={15} />
+              {isSyncingFb ? 'Sincronizando con Google Cloud...' : '🚀 Sincronizar Todos los Datos a Firestore Ahora'}
+            </button>
           </div>
         </div>
 

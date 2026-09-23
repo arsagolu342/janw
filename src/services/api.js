@@ -715,3 +715,35 @@ export async function apiDeleteSoundTrack(id, fullSoundSettings = null) {
     return { success: true, id, message: 'Eliminado correctamente' };
   }
 }
+
+// ==========================================
+// FIREBASE CLOUD STATUS & SYNC
+// ==========================================
+export async function apiGetFirebaseStatus() {
+  try {
+    const res = await safeFetchJson(`${API_BASE}/firebase/status`);
+    return res;
+  } catch (err) {
+    return {
+      connected: false,
+      projectId: 'terjamancoweb',
+      error: err.message
+    };
+  }
+}
+
+export async function apiSyncFirebase() {
+  try {
+    const res = await safeFetchJson(`${API_BASE}/firebase/sync`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    return res;
+  } catch (err) {
+    return {
+      success: false,
+      error: err.message
+    };
+  }
+}
+
