@@ -18,25 +18,37 @@ import {
 // Clave en localStorage para configuración dinámica desde el Admin
 const FIREBASE_CONFIG_STORAGE_KEY = 'terjamanco_firebase_config';
 
+// Configuración oficial por defecto del proyecto Firebase Cloud (terjamancoweb)
+export const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDFE4ql5iuC_oolzeLk5RBH8ubCbvkWDZA",
+  authDomain: "terjamancoweb.firebaseapp.com",
+  projectId: "terjamancoweb",
+  storageBucket: "terjamancoweb.firebasestorage.app",
+  messagingSenderId: "238870040107",
+  appId: "1:238870040107:web:3cdad337c7d7bf66f5646e",
+  measurementId: "G-V5QT9D16JD"
+};
+
 /**
  * Obtiene la configuración de Firebase activa:
  * 1. Desde localStorage (si el usuario la guardó en el Admin)
  * 2. O desde variables de entorno Vite (VITE_FIREBASE_*)
+ * 3. O fallback a las credenciales oficiales integradas
  */
 export function getStoredFirebaseConfig() {
   try {
     const saved = localStorage.getItem(FIREBASE_CONFIG_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed.apiKey && parsed.projectId) {
+      if (parsed && parsed.apiKey && parsed.projectId) {
         return {
           apiKey: String(parsed.apiKey).trim(),
-          authDomain: String(parsed.authDomain || '').trim(),
-          projectId: String(parsed.projectId || '').trim(),
-          storageBucket: String(parsed.storageBucket || '').trim(),
-          messagingSenderId: String(parsed.messagingSenderId || '').trim(),
-          appId: String(parsed.appId || '').trim(),
-          measurementId: String(parsed.measurementId || '').trim()
+          authDomain: String(parsed.authDomain || DEFAULT_FIREBASE_CONFIG.authDomain).trim(),
+          projectId: String(parsed.projectId || DEFAULT_FIREBASE_CONFIG.projectId).trim(),
+          storageBucket: String(parsed.storageBucket || DEFAULT_FIREBASE_CONFIG.storageBucket).trim(),
+          messagingSenderId: String(parsed.messagingSenderId || DEFAULT_FIREBASE_CONFIG.messagingSenderId).trim(),
+          appId: String(parsed.appId || DEFAULT_FIREBASE_CONFIG.appId).trim(),
+          measurementId: String(parsed.measurementId || DEFAULT_FIREBASE_CONFIG.measurementId).trim()
         };
       }
     }
@@ -44,22 +56,24 @@ export function getStoredFirebaseConfig() {
     console.warn('Error leyendo Firebase config de localStorage:', e);
   }
 
-  // Fallback a variables de entorno VITE_
-  const envConfig = {
-    apiKey: String(import.meta.env.VITE_FIREBASE_API_KEY || '').trim(),
-    authDomain: String(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '').trim(),
-    projectId: String(import.meta.env.VITE_FIREBASE_PROJECT_ID || '').trim(),
-    storageBucket: String(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '').trim(),
-    messagingSenderId: String(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '').trim(),
-    appId: String(import.meta.env.VITE_FIREBASE_APP_ID || '').trim(),
-    measurementId: String(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || '').trim()
-  };
+  // Fallback a variables de entorno VITE_ si existen
+  const envApiKey = String(import.meta.env.VITE_FIREBASE_API_KEY || '').trim();
+  const envProjectId = String(import.meta.env.VITE_FIREBASE_PROJECT_ID || '').trim();
 
-  if (envConfig.apiKey && envConfig.projectId) {
-    return envConfig;
+  if (envApiKey && envProjectId) {
+    return {
+      apiKey: envApiKey,
+      authDomain: String(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || DEFAULT_FIREBASE_CONFIG.authDomain).trim(),
+      projectId: envProjectId,
+      storageBucket: String(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || DEFAULT_FIREBASE_CONFIG.storageBucket).trim(),
+      messagingSenderId: String(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || DEFAULT_FIREBASE_CONFIG.messagingSenderId).trim(),
+      appId: String(import.meta.env.VITE_FIREBASE_APP_ID || DEFAULT_FIREBASE_CONFIG.appId).trim(),
+      measurementId: String(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || DEFAULT_FIREBASE_CONFIG.measurementId).trim()
+    };
   }
 
-  return null;
+  // Fallback a las credenciales oficiales de Terjamanco
+  return DEFAULT_FIREBASE_CONFIG;
 }
 
 /**
