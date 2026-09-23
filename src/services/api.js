@@ -368,7 +368,7 @@ export async function apiGetFullData() {
 
 export async function apiUpdateInfo(infoData) {
   if (isFirebaseConfigured()) {
-    try { await updateFirebaseSection('info', infoData); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('info', infoData);
   }
   try {
     return await safeFetchJson(`${API_BASE}/data/info`, {
@@ -376,14 +376,15 @@ export async function apiUpdateInfo(infoData) {
       headers: getHeaders(),
       body: JSON.stringify(infoData)
     });
-  } catch {
-    return { success: true, message: 'Guardado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, message: 'Guardado en Firebase Cloud' };
+    throw err;
   }
 }
 
 export async function apiUpdateHero(heroData) {
   if (isFirebaseConfigured()) {
-    try { await updateFirebaseSection('hero', heroData); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('hero', heroData);
   }
   try {
     return await safeFetchJson(`${API_BASE}/data/hero`, {
@@ -391,14 +392,15 @@ export async function apiUpdateHero(heroData) {
       headers: getHeaders(),
       body: JSON.stringify(heroData)
     });
-  } catch {
-    return { success: true, message: 'Guardado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, message: 'Guardado en Firebase Cloud' };
+    throw err;
   }
 }
 
 export async function apiUpdateMinerals(mineralsData) {
   if (isFirebaseConfigured()) {
-    try { await updateFirebaseSection('minerals', mineralsData); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('minerals', mineralsData);
   }
   try {
     return await safeFetchJson(`${API_BASE}/data/minerals`, {
@@ -406,15 +408,16 @@ export async function apiUpdateMinerals(mineralsData) {
       headers: getHeaders(),
       body: JSON.stringify(mineralsData)
     });
-  } catch {
-    return { success: true, message: 'Guardado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, message: 'Guardado en Firebase Cloud' };
+    throw err;
   }
 }
 
 // CRUD ZONES (SEDES)
 export async function apiSaveZone(zone, isNew = false, fullZonesList = null) {
   if (isFirebaseConfigured() && fullZonesList) {
-    try { await updateFirebaseSection('zones', fullZonesList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('zones', fullZonesList);
   }
   const url = isNew ? `${API_BASE}/zones` : `${API_BASE}/zones/${zone.id}`;
   const method = isNew ? 'POST' : 'PUT';
@@ -424,29 +427,31 @@ export async function apiSaveZone(zone, isNew = false, fullZonesList = null) {
       headers: getHeaders(),
       body: JSON.stringify(zone)
     });
-  } catch {
-    return { success: true, zone, message: 'Guardado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, zone, message: 'Guardado en Firebase Cloud' };
+    throw err;
   }
 }
 
 export async function apiDeleteZone(id, fullZonesList = null) {
   if (isFirebaseConfigured() && fullZonesList) {
-    try { await updateFirebaseSection('zones', fullZonesList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('zones', fullZonesList);
   }
   try {
     return await safeFetchJson(`${API_BASE}/zones/${id}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
-  } catch {
-    return { success: true, id, message: 'Eliminado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, id, message: 'Eliminado en Firebase Cloud' };
+    throw err;
   }
 }
 
 // CRUD SERVICES
 export async function apiSaveService(service, isNew = false, fullServicesList = null) {
   if (isFirebaseConfigured() && fullServicesList) {
-    try { await updateFirebaseSection('services', fullServicesList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('services', fullServicesList);
   }
   const url = isNew ? `${API_BASE}/services` : `${API_BASE}/services/${service.id}`;
   const method = isNew ? 'POST' : 'PUT';
@@ -456,29 +461,31 @@ export async function apiSaveService(service, isNew = false, fullServicesList = 
       headers: getHeaders(),
       body: JSON.stringify(service)
     });
-  } catch {
-    return { success: true, service, message: 'Guardado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, service, message: 'Guardado en Firebase Cloud' };
+    throw err;
   }
 }
 
 export async function apiDeleteService(id, fullServicesList = null) {
   if (isFirebaseConfigured() && fullServicesList) {
-    try { await updateFirebaseSection('services', fullServicesList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('services', fullServicesList);
   }
   try {
     return await safeFetchJson(`${API_BASE}/services/${id}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
-  } catch {
-    return { success: true, id, message: 'Eliminado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, id, message: 'Eliminado en Firebase Cloud' };
+    throw err;
   }
 }
 
 // CRUD PRODUCTS
 export async function apiSaveProduct(product, isNew = false, fullProductsList = null) {
   if (isFirebaseConfigured() && fullProductsList) {
-    try { await updateFirebaseSection('products', fullProductsList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('products', fullProductsList);
   }
   const url = isNew ? `${API_BASE}/products` : `${API_BASE}/products/${product.id}`;
   const method = isNew ? 'POST' : 'PUT';
@@ -488,29 +495,31 @@ export async function apiSaveProduct(product, isNew = false, fullProductsList = 
       headers: getHeaders(),
       body: JSON.stringify(product)
     });
-  } catch {
-    return { success: true, product, message: 'Guardado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, product, message: 'Guardado en Firebase Cloud' };
+    throw err;
   }
 }
 
 export async function apiDeleteProduct(id, fullProductsList = null) {
   if (isFirebaseConfigured() && fullProductsList) {
-    try { await updateFirebaseSection('products', fullProductsList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('products', fullProductsList);
   }
   try {
     return await safeFetchJson(`${API_BASE}/products/${id}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
-  } catch {
-    return { success: true, id, message: 'Eliminado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, id, message: 'Eliminado en Firebase Cloud' };
+    throw err;
   }
 }
 
 // CRUD PACKAGES
 export async function apiSavePackage(pkg, isNew = false, fullPackagesList = null) {
   if (isFirebaseConfigured() && fullPackagesList) {
-    try { await updateFirebaseSection('packages', fullPackagesList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('packages', fullPackagesList);
   }
   const url = isNew ? `${API_BASE}/packages` : `${API_BASE}/packages/${pkg.id}`;
   const method = isNew ? 'POST' : 'PUT';
@@ -520,29 +529,31 @@ export async function apiSavePackage(pkg, isNew = false, fullPackagesList = null
       headers: getHeaders(),
       body: JSON.stringify(pkg)
     });
-  } catch {
-    return { success: true, pkg, message: 'Guardado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, pkg, message: 'Guardado en Firebase Cloud' };
+    throw err;
   }
 }
 
 export async function apiDeletePackage(id, fullPackagesList = null) {
   if (isFirebaseConfigured() && fullPackagesList) {
-    try { await updateFirebaseSection('packages', fullPackagesList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('packages', fullPackagesList);
   }
   try {
     return await safeFetchJson(`${API_BASE}/packages/${id}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
-  } catch {
-    return { success: true, id, message: 'Eliminado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, id, message: 'Eliminado en Firebase Cloud' };
+    throw err;
   }
 }
 
 // CRUD GALLERY
 export async function apiAddGalleryPhoto(photo, fullGalleryList = null) {
   if (isFirebaseConfigured() && fullGalleryList) {
-    try { await updateFirebaseSection('gallery', fullGalleryList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('gallery', fullGalleryList);
   }
   try {
     return await safeFetchJson(`${API_BASE}/gallery`, {
@@ -550,29 +561,31 @@ export async function apiAddGalleryPhoto(photo, fullGalleryList = null) {
       headers: getHeaders(),
       body: JSON.stringify(photo)
     });
-  } catch {
-    return { success: true, photo, message: 'Guardado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, photo, message: 'Guardado en Firebase Cloud' };
+    throw err;
   }
 }
 
 export async function apiDeleteGalleryPhoto(id, fullGalleryList = null) {
   if (isFirebaseConfigured() && fullGalleryList) {
-    try { await updateFirebaseSection('gallery', fullGalleryList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('gallery', fullGalleryList);
   }
   try {
     return await safeFetchJson(`${API_BASE}/gallery/${id}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
-  } catch {
-    return { success: true, id, message: 'Eliminado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, id, message: 'Eliminado en Firebase Cloud' };
+    throw err;
   }
 }
 
 // CRUD REVIEWS
 export async function apiSaveReview(review, isNew = false, fullReviewsList = null) {
   if (isFirebaseConfigured() && fullReviewsList) {
-    try { await updateFirebaseSection('reviews', fullReviewsList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('reviews', fullReviewsList);
   }
   const url = isNew ? `${API_BASE}/reviews` : `${API_BASE}/reviews/${review.id}`;
   const method = isNew ? 'POST' : 'PUT';
@@ -582,29 +595,31 @@ export async function apiSaveReview(review, isNew = false, fullReviewsList = nul
       headers: getHeaders(),
       body: JSON.stringify(review)
     });
-  } catch {
-    return { success: true, review, message: 'Guardado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, review, message: 'Guardado en Firebase Cloud' };
+    throw err;
   }
 }
 
 export async function apiDeleteReview(id, fullReviewsList = null) {
   if (isFirebaseConfigured() && fullReviewsList) {
-    try { await updateFirebaseSection('reviews', fullReviewsList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('reviews', fullReviewsList);
   }
   try {
     return await safeFetchJson(`${API_BASE}/reviews/${id}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
-  } catch {
-    return { success: true, id, message: 'Eliminado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, id, message: 'Eliminado en Firebase Cloud' };
+    throw err;
   }
 }
 
 // CRUD FAQS
 export async function apiSaveFaq(faq, isNew = false, fullFaqsList = null) {
   if (isFirebaseConfigured() && fullFaqsList) {
-    try { await updateFirebaseSection('faqs', fullFaqsList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('faqs', fullFaqsList);
   }
   const url = isNew ? `${API_BASE}/faqs` : `${API_BASE}/faqs/${faq.id}`;
   const method = isNew ? 'POST' : 'PUT';
@@ -614,22 +629,24 @@ export async function apiSaveFaq(faq, isNew = false, fullFaqsList = null) {
       headers: getHeaders(),
       body: JSON.stringify(faq)
     });
-  } catch {
-    return { success: true, faq, message: 'Guardado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, faq, message: 'Guardado en Firebase Cloud' };
+    throw err;
   }
 }
 
 export async function apiDeleteFaq(id, fullFaqsList = null) {
   if (isFirebaseConfigured() && fullFaqsList) {
-    try { await updateFirebaseSection('faqs', fullFaqsList); } catch (e) { console.warn(e); }
+    await updateFirebaseSection('faqs', fullFaqsList);
   }
   try {
     return await safeFetchJson(`${API_BASE}/faqs/${id}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
-  } catch {
-    return { success: true, id, message: 'Eliminado correctamente' };
+  } catch (err) {
+    if (isFirebaseConfigured()) return { success: true, id, message: 'Eliminado en Firebase Cloud' };
+    throw err;
   }
 }
 

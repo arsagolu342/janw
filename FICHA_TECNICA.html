@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ficha Técnica - Termales Jamanco</title>
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #1e293b;
+    background: #ffffff;
+    line-height: 1.6;
+    font-size: 13px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .header {
+    border-bottom: 3px solid #0d9488;
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header .title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  .header .subtitle {
+    font-size: 12px;
+    color: #0d9488;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  .header .badge {
+    background: #0d9488;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-top: 0;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 6px;
+  }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f766e;
+    margin-top: 24px;
+    margin-bottom: 10px;
+    border-left: 4px solid #0d9488;
+    padding-left: 10px;
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    page-break-after: avoid;
+  }
+
+  p {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #334155;
+  }
+
+  ul, ol {
+    margin-top: 0;
+    margin-bottom: 12px;
+    padding-left: 20px;
+  }
+
+  li {
+    margin-bottom: 4px;
+    color: #334155;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    margin-bottom: 18px;
+    font-size: 12px;
+    page-break-inside: avoid;
+  }
+
+  th {
+    background: #f1f5f9;
+    color: #0f172a;
+    font-weight: 700;
+    text-align: left;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+  }
+
+  td {
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+  }
+
+  tr:nth-child(even) td {
+    background: #f8fafc;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    background: #f1f5f9;
+    color: #0f766e;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    border: 1px solid #e2e8f0;
+  }
+
+  pre {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    overflow-x: auto;
+    page-break-inside: avoid;
+    margin-bottom: 16px;
+  }
+
+  pre code {
+    background: transparent;
+    color: #f8fafc;
+    padding: 0;
+    border: none;
+  }
+
+  .callout {
+    background: #f0fdfa;
+    border: 1px solid #99f6e4;
+    border-left: 4px solid #0d9488;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin: 12px 0 16px 0;
+    font-size: 12px;
+  }
+
+  .callout-title {
+    font-weight: 700;
+    color: #0f766e;
+    margin-bottom: 4px;
+  }
+
+  .footer {
+    margin-top: 30px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 10px;
+    font-size: 10px;
+    color: #94a3b8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  .tag {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 4px;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="title">TERMALES JAMANCO</div>
+      <div class="subtitle">Especificación Técnica de Arquitectura & Software</div>
+    </div>
+    <div class="badge">Ficha Técnica Oficial v1.0</div>
+  </div>
+
+  <h1>📋 Ficha Técnica del Sistema: Plataforma Web & Cloud</h1>
+
+  <h2>1. IDENTIFICACIÓN Y METADATOS DEL SISTEMA</h2>
+  <table>
+    <tbody>
+      <tr>
+        <td style="width: 30%;"><strong>Nombre del Sistema</strong></td>
+        <td>Plataforma Web Turística & Panel Administrativo Cloud - Termales Jamanco</td>
+      </tr>
+      <tr>
+        <td><strong>Versión</strong></td>
+        <td><code>1.0.0 (Production Release / Cloud-Ready)</code></td>
+      </tr>
+      <tr>
+        <td><strong>Tipo de Aplicación</strong></td>
+        <td>Single Page Application (SPA) + NoSQL Realtime Database + RESTful API</td>
+      </tr>
+      <tr>
+        <td><strong>Entorno de Despliegue</strong></td>
+        <td>Netlify (Hosting Global / Edge CDN) / Node.js Express (Backend Opcional)</td>
+      </tr>
+      <tr>
+        <td><strong>Base de Datos Principal</strong></td>
+        <td>Google Cloud Firestore (Base de datos NoSQL distribuida en tiempo real)</td>
+      </tr>
+      <tr>
+        <td><strong>Almacenamiento Multimedia</strong></td>
+        <td>Google Firebase Cloud Storage (Imágenes y Audios)</td>
+      </tr>
+      <tr>
+        <td><strong>Industria / Rubro</strong></td>
+        <td>Turismo, Ecoturismo, Termalismo, Gastronomía y Hospedaje</td>
+      </tr>
+      <tr>
+        <td><strong>Ubicación de Referencia</strong></td>
+        <td>Papallacta, Napo, Ecuador (a 1h de Quito por la vía Pifo)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. STACK TECNOLÓGICO & DEPENDENCIAS</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Capa / Componente</th>
+        <th>Tecnología / Librería</th>
+        <th>Versión</th>
+        <th>Propósito / Función</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Core Frontend</strong></td>
+        <td>React</td>
+        <td>18.3.1</td>
+        <td>Arquitectura declarativa basada en componentes y Hooks.</td>
+      </tr>
+      <tr>
+        <td><strong>Build Tool / Bundler</strong></td>
+        <td>Vite</td>
+        <td>5.4.x</td>
+        <td>Empaquetado optimizado, Rollup chunks y HMR de alto rendimiento.</td>
+      </tr>
+      <tr>
+        <td><strong>Motor de Estilos</strong></td>
+        <td>Vanilla CSS3</td>
+        <td>Modern CSS</td>
+        <td>Glassmorphism, Dark Mode, variables HSL y animaciones fluidas.</td>
+      </tr>
+      <tr>
+        <td><strong>Iconografía</strong></td>
+        <td>Lucide React</td>
+        <td>0.468.0</td>
+        <td>Iconografía SVG vectorial de alto rendimiento.</td>
+      </tr>
+      <tr>
+        <td><strong>Microinteracciones</strong></td>
+        <td>Canvas Confetti</td>
+        <td>1.9.3</td>
+        <td>Efectos visuales en cotizaciones de paquetes.</td>
+      </tr>
+      <tr>
+        <td><strong>Base de Datos Cloud</strong></td>
+        <td>Firebase Firestore</td>
+        <td>12.19.0</td>
+        <td>Persistencia y sincronización en tiempo real con <code>onSnapshot</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>Storage Cloud</strong></td>
+        <td>Firebase Storage</td>
+        <td>12.19.0</td>
+        <td>Almacenamiento de fotos en alta resolución y pistas de audio.</td>
+      </tr>
+      <tr>
+        <td><strong>Servidor API Opcional</strong></td>
+        <td>Express / Node.js</td>
+        <td>5.2.1 / v20+</td>
+        <td>Backend RESTful con soporte SSE y Firebase Admin SDK.</td>
+      </tr>
+      <tr>
+        <td><strong>Seguridad & Auth</strong></td>
+        <td>JWT & bcryptjs</td>
+        <td>9.0 / 3.0</td>
+        <td>Generación de tokens firmados y hashing de claves de admin.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. ARQUITECTURA DE DATOS & PROTOCOLOS DE COMUNICACIÓN</h2>
+  <ul>
+    <li><strong>Colección Principal Firestore:</strong> <code>terjamanco_site</code></li>
+    <li><strong>Documento Principal de Estado:</strong> <code>main_content</code> (Almacena info, hero, sedes, servicios, productos, paquetes, galería, reseñas, faqs y configuración de audio).</li>
+    <li><strong>Protocolo de Transmisión en Vivo:</strong> Google Firestore WebSocket gRPC / WebChannel + Server-Sent Events (SSE) para clientes conectados.</li>
+    <li><strong>Almacenamiento de Sesión:</strong> LocalStorage seguro para tokens JWT de sesión administrativa.</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <div class="header">
+    <div>
+      <div class="title">TERMALES JAMANCO</div>
+      <div class="subtitle">Ficha Técnica • Seguridad, Requisitos y Estructura</div>
+    </div>
+    <div class="badge">Ficha Técnica v1.0</div>
+  </div>
+
+  <h2>4. SEGURIDAD, INTEGRIDAD Y PROTECCIÓN DE DATOS</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Área de Seguridad</th>
+        <th>Estrategia Implementada</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Autenticación Admin</strong></td>
+        <td>Tokens JWT firmados con clave secreta criptográfica (<code>JWT_SECRET</code>).</td>
+      </tr>
+      <tr>
+        <td><strong>Protección de Claves</strong></td>
+        <td>Encriptación unidireccional de contraseñas con algoritmo <code>bcryptjs</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>Protección contra Inyección / XSS</strong></td>
+        <td>Sanitización automática en React DOM Virtual Tree y serialización estricta de JSON.</td>
+      </tr>
+      <tr>
+        <td><strong>Subida de Archivos</strong></td>
+        <td>Validación de tipos MIME (<code>image/jpeg</code>, <code>image/png</code>, <code>image/webp</code>, <code>audio/mpeg</code>) y sanitización de nombres de archivo.</td>
+      </tr>
+      <tr>
+        <td><strong>Reglas de Seguridad Cloud</strong></td>
+        <td>Políticas granulares en Firestore y Storage para lectura pública y protección de escritura.</td>
+      </tr>
+      <tr>
+        <td><strong>Cifrado en Tránsito</strong></td>
+        <td>HTTPS / TLS 1.3 en todos los endpoints de Netlify y Google Cloud.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>5. REQUISITOS DEL SISTEMA</h2>
+  <h3>5.1 Hosting y Servidor</h3>
+  <ul>
+    <li><strong>Hosting Estático:</strong> Netlify (CDN Global, soporte de <code>netlify.toml</code> para redirecciones SPA <code>/* -> /index.html</code>).</li>
+    <li><strong>Google Firebase:</strong> Proyecto activo en Cloud Firestore y Firebase Storage (Plan Spark Gratuito o Plan Blaze).</li>
+    <li><strong>Node.js (para desarrollo / backend local):</strong> Node.js v18.0.0 o superior, npm v9.0.0 o superior.</li>
+  </ul>
+
+  <h3>5.2 Compatibilidad de Navegadores de Clientes</h3>
+  <ul>
+    <li><span class="tag">Chrome 90+</span> <span class="tag">Safari 14+ (iOS / macOS)</span> <span class="tag">Firefox 88+</span> <span class="tag">Edge 90+</span> <span class="tag">Android WebView / Chrome Mobile</span></li>
+  </ul>
+
+  <h2>6. VARIABLES DE ENTORNO REQUERIDAS (.env)</h2>
+  <pre><code># Google Firebase Cloud Client (Requerido para Netlify y Producción)
+VITE_FIREBASE_API_KEY=AIzaSy...
+VITE_FIREBASE_PROJECT_ID=terjamancoweb
+VITE_FIREBASE_AUTH_DOMAIN=terjamancoweb.firebaseapp.com
+VITE_FIREBASE_STORAGE_BUCKET=terjamancoweb.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=1096293222402
+VITE_FIREBASE_APP_ID=1:1096293222402:web:...
+
+# Backend Node.js Local (Opcional)
+PORT=5000
+JWT_SECRET=terjamanco_super_secret_jwt_key_papallacta_2025</code></pre>
+
+  <div class="footer">
+    <div>Termales Jamanco • Especificación Técnica Oficial</div>
+    <div>Papallacta, Ecuador • Página 2 de 2</div>
+  </div>
+</body>
+</html>

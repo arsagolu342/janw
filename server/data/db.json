@@ -1,100 +1,98 @@
 {
   "info": {
-    "poolsCount": 10,
-    "logoSubtext": "Papallacta • Ecuador",
-    "hours2": "Terjamanco 2: Todos los días 06:00 AM - 23:00 PM (Pases Nocturnos & Pool Party)",
-    "tagline": "El Paraíso Geotermal de Papallacta | Piscinas Termales, Mirador Extremo, Hospedaje & Gastronomía",
-    "facebookUrl": "https://www.facebook.com/Terjamancoo",
-    "tiktokUrl": "https://tiktok.com",
-    "name": "Termales Jamanco",
-    "origin": "Aguas Termales Medicinales 100% Vírgenes del Páramo de Papallacta",
     "facebookHandle": "@Terjamancoo",
-    "hours1": "Terjamanco 1: Todos los días 06:00 AM - 19:30 PM",
-    "whatsapp": "593981385981",
-    "hoursMirador": "El Mirador Jamanco: Fines de semana y feriados 06:00 AM - 17:00 PM",
-    "rating": 4.9,
-    "alias": "Terjamanco Papallacta",
-    "waterTempRange": "37°C - 44°C",
+    "tiktokUrl": "https://tiktok.com",
     "address": "Vía Quito - Papallacta, Km 45 (a 1 hora de Quito desde Pifo), Cantón Quijos, Napo - Ecuador",
-    "reviewsCount": 2840,
+    "alias": "Terjamanco Papallacta",
     "logoType": "image",
-    "instagramUrl": "https://instagram.com",
+    "poolsCount": 10,
+    "hoursMirador": "El Mirador Jamanco: Fines de semana y feriados 06:00 AM - 17:00 PM",
+    "waterTempRange": "37°C - 44°C",
+    "tagline": "El Paraíso Geotermal de Papallacta | Piscinas Termales, Mirador Extremo, Hospedaje & Gastronomía",
     "email": "contacto@termalesjamanco.com",
+    "hours2": "Terjamanco 2: Todos los días 06:00 AM - 23:00 PM (Pases Nocturnos & Pool Party)",
+    "hours1": "Terjamanco 1: Todos los días 06:00 AM - 19:30 PM",
+    "reviewsCount": 2840,
+    "name": "Termales Jamanco",
+    "facebookUrl": "https://www.facebook.com/Terjamancoo",
+    "origin": "Aguas Termales Medicinales 100% Vírgenes del Páramo de Papallacta",
+    "rating": 4.9,
     "phone": "+593 98 138 5981",
-    "logoUrl": "/uploads/logotipo-original-1790173898346-9431.png"
+    "logoUrl": "/uploads/logotipo-original-1790173898346-9431.png",
+    "logoSubtext": "Papallacta • Ecuador",
+    "whatsapp": "593981385981",
+    "instagramUrl": "https://instagram.com"
   },
   "hero": {
-    "bgImage": "/images/jamanco_hero_cinematic.jpg",
-    "badge3": "A 1h de Quito desde Pifo",
-    "badge1": "Aguas Termales Vírgenes 37°C - 44°C",
-    "titleHighlight": "Termales Jamanco",
     "titlePrefix": "Descubre la Magia de ",
-    "badge2": "Papallacta, Ecuador • @Terjamancoo",
+    "badge3": "A 1h de Quito desde Pifo",
     "subtitle": "Sumérgete en nuestras piscinas termales naturales en Terjamanco 1 y 2, vive la adrenalina del Columpio Extremo en El Mirador, disfruta de la mejor trucha andina y hospédate en el corazón del páramo.",
-    "titleSuffix": " en Papallacta"
+    "badge1": "Aguas Termales Vírgenes 37°C - 44°C",
+    "bgImage": "/images/jamanco_hero_cinematic.jpg",
+    "badge2": "Papallacta, Ecuador • @Terjamancoo",
+    "titleSuffix": " en Papallacta",
+    "titleHighlight": "Termales Jamanco"
   },
   "minerals": [
     {
+      "icon": "Sparkles",
       "benefit": "Desintoxicación dérmica profunda, alivia dolores reumáticos y estimula la regeneración de tejidos.",
-      "name": "Sulfato & Azufre Volcánico",
-      "level": "Alto y Terapéutico",
-      "symbol": "S",
       "color": "#f59e0b",
-      "id": "azufre",
-      "icon": "Sparkles"
+      "level": "Alto y Terapéutico",
+      "name": "Sulfato & Azufre Volcánico",
+      "symbol": "S",
+      "id": "azufre"
     },
     {
+      "icon": "Zap",
+      "color": "#10b981",
       "level": "Concentrado",
       "name": "Magnesio & Cloruro",
-      "color": "#10b981",
-      "benefit": "Relaja de inmediato la musculatura tras el viaje, combate el insomnio y disminuye el estrés del páramo.",
       "id": "magnesio",
       "symbol": "Mg+Cl",
-      "icon": "Zap"
+      "benefit": "Relaja de inmediato la musculatura tras el viaje, combate el insomnio y disminuye el estrés del páramo."
     },
     {
-      "name": "Calcio & Sodio",
+      "icon": "ShieldCheck",
+      "color": "#06b6d4",
       "level": "Equilibrado",
+      "name": "Calcio & Sodio",
       "symbol": "Ca+Na",
       "benefit": "Mejora la circulación periférica, reconforta las articulaciones y favorece la oxigenación celular.",
-      "color": "#06b6d4",
-      "icon": "ShieldCheck",
       "id": "calcio"
     },
     {
       "color": "#8b5cf6",
       "level": "Puro",
-      "symbol": "Si+HCO3",
-      "benefit": "Equilibra el pH de la piel dejándola suave, tersa e hidratada de manera 100% natural.",
       "name": "Silicio & Bicarbonato",
       "id": "silicio",
-      "icon": "HeartHandshake"
+      "symbol": "Si+HCO3",
+      "icon": "HeartHandshake",
+      "benefit": "Equilibra el pH de la piel dejándola suave, tersa e hidratada de manera 100% natural."
     }
   ],
   "zones": [
     {
+      "name": "Terjamanco 1 (Complejo Tradicional & Spa)",
+      "temp": "38°C - 42°C",
+      "schedule": "06:00 AM a 19:30 PM",
+      "description": "Sede principal con piscinas termales familiares, chorros de hidromasaje, baños turcos naturales de vapor geotermal, restaurante de truchas y cómodas habitaciones de hospedaje.",
+      "badge": "Familiar & Relax",
+      "image": "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1000&q=80",
+      "id": "terjamanco-1",
       "features": [
         "Piscinas termales cubiertas y al aire libre",
         "Baño turco con vapor geotérmico 100% natural",
         "Hidromasajes relajantes",
         "Restaurante con trucha fresca de Papallacta",
         "Hospedaje campestre con acceso directo a termas"
-      ],
-      "image": "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1000&q=80",
-      "description": "Sede principal con piscinas termales familiares, chorros de hidromasaje, baños turcos naturales de vapor geotermal, restaurante de truchas y cómodas habitaciones de hospedaje.",
-      "badge": "Familiar & Relax",
-      "id": "terjamanco-1",
-      "schedule": "06:00 AM a 19:30 PM",
-      "temp": "38°C - 42°C",
-      "name": "Terjamanco 1 (Complejo Tradicional & Spa)"
+      ]
     },
     {
       "schedule": "06:00 AM a 23:00 PM",
-      "image": "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=1000&q=80",
       "description": "El complejo más amplio y moderno de Jamanco. Piscinas con iluminación LED subacuática, ambiente festivo para pool parties nocturnas, fogatas comunitarias y servicio de bebidas.",
       "badge": "Pase Nocturno & Música",
-      "temp": "39°C - 44°C",
-      "name": "Terjamanco 2 (Piscinas Modernas & Pool Party)",
+      "image": "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=1000&q=80",
       "features": [
         "Piscinas termales de alta temperatura (hasta 44°C)",
         "Pase nocturno bajo las estrellas hasta las 23:00",
@@ -102,45 +100,53 @@
         "Fogatas y zona de descanso con cafetería",
         "Vestidores modernos y casilleros seguros"
       ],
-      "id": "terjamanco-2"
+      "name": "Terjamanco 2 (Piscinas Modernas & Pool Party)",
+      "id": "terjamanco-2",
+      "temp": "39°C - 44°C"
     },
     {
+      "id": "mirador-extremo",
+      "badge": "Adrenalina & Vistas",
+      "image": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80",
       "schedule": "Sábados, Domingos y Feriados 06:00 a 17:00",
+      "description": "Ubicado en la parte alta de Papallacta con vista panorámica a la cordillera. Vive la emoción del Columpio Extremo al vacío, paseos en bote en la laguna, pesca deportiva y senderos ecológicos.",
+      "name": "El Mirador Jamanco & Parque de Aventura",
+      "temp": "Páramo Andino",
       "features": [
         "Columpio Extremo con vista al abismo andino",
         "Paseos en bote recreativo en la laguna",
         "Pesca deportiva de trucha arcoíris",
         "Mirador fotográfico 360° para fotos espectaculares",
         "Senderos naturales de avistamiento de colibríes"
-      ],
-      "badge": "Adrenalina & Vistas",
-      "temp": "Páramo Andino",
-      "name": "El Mirador Jamanco & Parque de Aventura",
-      "id": "mirador-extremo",
-      "description": "Ubicado en la parte alta de Papallacta con vista panorámica a la cordillera. Vive la emoción del Columpio Extremo al vacío, paseos en bote en la laguna, pesca deportiva y senderos ecológicos.",
-      "image": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80"
+      ]
     }
   ],
   "services": [
     {
-      "shortDesc": "Disfruta de nuestras piscinas de agua caliente natural, hidromasaje y ambiente del páramo de Papallacta.",
-      "duration": "Pase de Día",
       "price": 6,
-      "image": "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80",
-      "category": "Piscinas Termales",
-      "title": "Entrada General Termales Jamanco",
-      "badge": "Más Popular",
       "unit": "por adulto ($3 niños)",
-      "id": "entrada-terjamanco-1-2",
+      "duration": "Pase de Día",
       "included": [
         "Acceso a piscinas termales e hidromasajes",
         "Uso de vestidores, duchas y áreas verdes",
         "Estacionamiento privado vigilado",
         "Acceso a cafetería y restaurante"
-      ]
+      ],
+      "badge": "Más Popular",
+      "id": "entrada-terjamanco-1-2",
+      "category": "Piscinas Termales",
+      "title": "Entrada General Termales Jamanco",
+      "shortDesc": "Disfruta de nuestras piscinas de agua caliente natural, hidromasaje y ambiente del páramo de Papallacta.",
+      "image": "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80"
     },
     {
+      "badge": "Favorito Nocturno",
+      "price": 7,
+      "category": "Piscinas Termales",
+      "id": "pase-nocturno-jamanco",
       "shortDesc": "La mejor experiencia nocturna en Papallacta. Piscinas calientes iluminadas bajo el cielo estrellado.",
+      "image": "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=800&q=80",
+      "duration": "18:00 a 23:00 PM",
       "included": [
         "Acceso nocturno a pozas calientes (hasta 44°C)",
         "Iluminación ambiental y música acústica",
@@ -148,174 +154,167 @@
         "Bebida caliente de cortesía"
       ],
       "unit": "por persona",
-      "category": "Piscinas Termales",
-      "price": 7,
-      "id": "pase-nocturno-jamanco",
-      "image": "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=800&q=80",
-      "duration": "18:00 a 23:00 PM",
-      "title": "Pase Nocturno & Pool Party (Terjamanco 2)",
-      "badge": "Favorito Nocturno"
+      "title": "Pase Nocturno & Pool Party (Terjamanco 2)"
     },
     {
-      "duration": "Fines de semana y feriados",
       "unit": "por persona",
+      "title": "Experiencia en El Mirador + Columpio Extremo",
       "category": "Mirador & Aventura",
-      "price": 5,
-      "shortDesc": "Siente la adrenalina del columpio andino con vista al valle de Papallacta y tómate las mejores fotos.",
-      "id": "columpio-mirador",
       "image": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
+      "shortDesc": "Siente la adrenalina del columpio andino con vista al valle de Papallacta y tómate las mejores fotos.",
+      "price": 5,
       "included": [
         "Ingreso al Mirador Jamanco 360°",
         "Sesión en el Columpio Extremo con arnés de seguridad",
         "Fotos panorámicas del cañón andino",
         "Acceso a senderos de colibríes"
       ],
+      "duration": "Fines de semana y feriados",
       "badge": "Viral & Adrenalina",
-      "title": "Experiencia en El Mirador + Columpio Extremo"
+      "id": "columpio-mirador"
     },
     {
-      "shortDesc": "Navega en la laguna del mirador y disfruta de la pesca deportiva de trucha en aguas cristalinas.",
+      "id": "bote-pesca-jamanco",
+      "title": "Paseo en Bote & Pesca Deportiva de Trucha",
       "included": [
         "Paseo en bote a remo o pedal con chalecos salvavidas",
         "Caña y carnada para pesca de trucha",
         "Preparación de tu pesca en el restaurante (opcional)",
         "Guía y asistencia en la laguna"
       ],
-      "id": "bote-pesca-jamanco",
-      "unit": "por actividad",
-      "badge": "Familiar",
-      "title": "Paseo en Bote & Pesca Deportiva de Trucha",
       "duration": "45 minutos",
+      "unit": "por actividad",
       "image": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
-      "category": "Mirador & Aventura",
-      "price": 8
+      "price": 8,
+      "shortDesc": "Navega en la laguna del mirador y disfruta de la pesca deportiva de trucha en aguas cristalinas.",
+      "badge": "Familiar",
+      "category": "Mirador & Aventura"
     },
     {
-      "unit": "por noche (2 personas)",
+      "shortDesc": "Descansa en cómodas habitaciones rústicas rodeadas de naturaleza con acceso ilimitado a las piscinas termales.",
       "price": 50,
-      "category": "Hospedaje",
-      "image": "https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=800&q=80",
-      "duration": "Check-in 14:00 / Check-out 12:00",
+      "id": "hospedaje-jamanco",
       "badge": "Descanso Total",
-      "title": "Hospedaje en Cabañas Termales Jamanco",
+      "unit": "por noche (2 personas)",
+      "category": "Hospedaje",
+      "duration": "Check-in 14:00 / Check-out 12:00",
       "included": [
         "Habitación matrimonial o doble con baño privado y agua caliente",
         "Entrada libre ilimitada a las termas durante tu estadía",
         "Desayuno continental andino incluido",
         "Estacionamiento privado gratuito"
       ],
-      "id": "hospedaje-jamanco",
-      "shortDesc": "Descansa en cómodas habitaciones rústicas rodeadas de naturaleza con acceso ilimitado a las piscinas termales."
+      "title": "Hospedaje en Cabañas Termales Jamanco",
+      "image": "https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=800&q=80"
     },
     {
+      "shortDesc": "El plato estrella de Jamanco: trucha fresca criada en vertientes del páramo, patacones, arroz y ensalada.",
+      "badge": "Especialidad",
+      "price": 8.5,
+      "category": "Gastronomía",
+      "unit": "plato completo",
       "included": [
         "Trucha entera frita, al vapor, al ajillo o a la plancha",
         "Porción de patacones crocantes y arroz",
         "Ensalada fresca de la huerta",
         "Vaso de jugo natural o té de hierbas"
       ],
-      "unit": "plato completo",
-      "shortDesc": "El plato estrella de Jamanco: trucha fresca criada en vertientes del páramo, patacones, arroz y ensalada.",
-      "id": "gastronomia-trucha",
-      "price": 8.5,
-      "badge": "Especialidad",
-      "title": "Almuerzo Típico: Trucha Frita o al Ajillo de Papallacta",
+      "duration": "Almuerzo o Cena",
       "image": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
-      "category": "Gastronomía",
-      "duration": "Almuerzo o Cena"
+      "id": "gastronomia-trucha",
+      "title": "Almuerzo Típico: Trucha Frita o al Ajillo de Papallacta"
     }
   ],
   "products": [
     {
-      "tagline": "Lodo mineral 100% natural extraído de los manantiales de Jamanco",
-      "rating": 5,
-      "category": "Tratamiento Facial & Corporal",
-      "image": "https://images.unsplash.com/photo-1608248597359-05f329971936?auto=format&fit=crop&w=600&q=80",
-      "reviews": 312,
       "oldPrice": 14,
-      "badge": "Top Ventas",
-      "name": "Barro Volcánico Exfoliante de Papallacta (500g)",
+      "rating": 5,
+      "image": "https://images.unsplash.com/photo-1608248597359-05f329971936?auto=format&fit=crop&w=600&q=80",
       "benefits": [
         "Limpia toxinas y desobstruye los poros",
         "Efecto tensor y exfoliación mineral suave",
         "Ideal para mascarillas faciales y corporales en casa"
       ],
+      "reviews": 312,
+      "badge": "Top Ventas",
+      "category": "Tratamiento Facial & Corporal",
+      "tagline": "Lodo mineral 100% natural extraído de los manantiales de Jamanco",
       "price": 10,
+      "name": "Barro Volcánico Exfoliante de Papallacta (500g)",
       "id": "prod-barro-papallacta"
     },
     {
-      "tagline": "Agua termal pura en spray microfiltrada con minerales del páramo",
+      "category": "Hidratación & Calma",
+      "name": "Bruma Facial de Agua Termal Virgen Jamanco (250ml)",
+      "reviews": 245,
+      "image": "https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&w=600&q=80",
       "rating": 4.9,
+      "tagline": "Agua termal pura en spray microfiltrada con minerales del páramo",
       "oldPrice": 11,
-      "id": "prod-bruma-jamanco",
+      "price": 8,
+      "badge": "Frescura Pura",
       "benefits": [
         "Alivia rojeces producidas por el frío del páramo",
         "Fijador natural de maquillaje e hidratación instantánea",
         "Apta para todo tipo de pieles y edades"
       ],
-      "reviews": 245,
-      "badge": "Frescura Pura",
-      "image": "https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&w=600&q=80",
-      "category": "Hidratación & Calma",
-      "price": 8,
-      "name": "Bruma Facial de Agua Termal Virgen Jamanco (250ml)"
+      "id": "prod-bruma-jamanco"
     },
     {
-      "rating": 4.8,
+      "price": 4,
+      "id": "prod-jabon-artesanal",
+      "category": "Higiene Terapéutica",
       "tagline": "Elaborado a mano con aguas termales y esencias naturales",
+      "name": "Jabón Termal Artesanal de Azufre & Eucalipto (120g)",
+      "badge": "Antiacné",
+      "reviews": 420,
+      "oldPrice": 5.5,
+      "rating": 4.8,
       "benefits": [
         "Controla el exceso de grasa y combate impurezas",
         "Aroma relajante a eucalipto andino",
         "Libre de químicos agresivos y 100% biodegradable"
       ],
-      "oldPrice": 5.5,
-      "category": "Higiene Terapéutica",
-      "reviews": 420,
-      "image": "https://images.unsplash.com/photo-1607006314041-3294101e4004?auto=format&fit=crop&w=600&q=80",
-      "name": "Jabón Termal Artesanal de Azufre & Eucalipto (120g)",
-      "badge": "Antiacné",
-      "id": "prod-jabon-artesanal",
-      "price": 4
+      "image": "https://images.unsplash.com/photo-1607006314041-3294101e4004?auto=format&fit=crop&w=600&q=80"
     },
     {
-      "id": "prod-sales-jamanco",
-      "category": "Relax en Casa",
-      "reviews": 180,
-      "name": "Sales de Baño Geotermales con Muña y Lavanda (600g)",
-      "rating": 4.9,
       "tagline": "Sulfato de magnesio y extractos botánicos de la cordillera",
+      "category": "Relax en Casa",
+      "name": "Sales de Baño Geotermales con Muña y Lavanda (600g)",
+      "image": "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=600&q=80",
+      "rating": 4.9,
       "price": 9,
       "benefits": [
         "Revive la experiencia de Jamanco en tu tina de baño",
         "Alivia contracturas de espalda y piernas cansadas",
         "Aromaterapia que induce al sueño profundo"
       ],
+      "reviews": 180,
       "badge": "Anti-Estrés",
-      "image": "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=600&q=80",
-      "oldPrice": 12
+      "oldPrice": 12,
+      "id": "prod-sales-jamanco"
     },
     {
+      "category": "Packs de Regalo",
+      "reviews": 195,
+      "badge": "Ahorro Especial",
+      "price": 25,
+      "oldPrice": 35,
       "tagline": "Incluye Barro (500g) + Bruma (250ml) + 2 Jabones Termales + Toalla Jamanco",
+      "image": "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80",
+      "id": "prod-pack-souvenir-jamanco",
+      "name": "Combo Recuerdo 'Termales Jamanco Papallacta'",
+      "rating": 5,
       "benefits": [
         "El regalo perfecto para llevar de tu visita a Papallacta",
         "Empaque ecológico con el logotipo oficial de Jamanco",
         "Ahorra un 30% comprando el pack completo"
-      ],
-      "rating": 5,
-      "name": "Combo Recuerdo 'Termales Jamanco Papallacta'",
-      "oldPrice": 35,
-      "category": "Packs de Regalo",
-      "price": 25,
-      "reviews": 195,
-      "id": "prod-pack-souvenir-jamanco",
-      "image": "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80",
-      "badge": "Ahorro Especial"
+      ]
     }
   ],
   "packages": [
     {
-      "popular": false,
-      "priceAdult": 6,
+      "category": "Entradas",
       "name": "Pase de Día Termal (Terjamanco 1 ó 2)",
       "features": [
         "Piscinas termales 38°C a 44°C",
@@ -323,48 +322,46 @@
         "Estacionamiento privado",
         "Acceso a áreas de descanso"
       ],
-      "priceChild": 3,
+      "priceAdult": 6,
       "id": "pase-dia-jamanco",
       "description": "Acceso completo a piscinas termales, hidromasaje y turco de 06:00 AM a 19:30 PM.",
-      "category": "Entradas"
+      "popular": false,
+      "priceChild": 3
     },
     {
-      "category": "Entradas",
+      "popular": true,
       "priceAdult": 7,
+      "name": "Pase Nocturno / Pool Party (Terjamanco 2)",
       "features": [
         "Horario 18:00 a 23:00 PM",
         "Pozas calientes iluminadas",
         "Fogata comunitaria",
         "Música ambiental y ambiente festivo"
       ],
+      "category": "Entradas",
       "description": "La experiencia nocturna más famosa de Papallacta con agua caliente bajo las estrellas hasta las 23:00 PM.",
       "priceChild": 4,
-      "popular": true,
-      "id": "pase-nocturno-jamanco",
-      "name": "Pase Nocturno / Pool Party (Terjamanco 2)"
+      "id": "pase-nocturno-jamanco"
     },
     {
-      "priceChild": 10,
-      "id": "combo-termas-mirador",
-      "name": "Combo Completo: Termas + Mirador + Columpio",
-      "popular": true,
-      "priceAdult": 15,
       "description": "El día perfecto en Papallacta: disfruta las termas y sube al Mirador para el Columpio Extremo y paseo en bote.",
-      "category": "Experiencias",
+      "priceChild": 10,
       "features": [
         "Pase completo de día a piscinas termales",
         "Entrada al Mirador Jamanco 360°",
         "1 Pase en Columpio Extremo",
         "Paseo en bote en la laguna"
-      ]
+      ],
+      "category": "Experiencias",
+      "id": "combo-termas-mirador",
+      "priceAdult": 15,
+      "popular": true,
+      "name": "Combo Completo: Termas + Mirador + Columpio"
     },
     {
-      "fixedForTwo": true,
-      "name": "Paquete Escapada Romántica (Hospedaje + Termas)",
-      "priceChild": 0,
-      "category": "Hospedaje",
-      "popular": false,
+      "id": "pack-hospedaje-parejas",
       "description": "Una noche inolvidable en Papallacta para 2 personas con cabaña, termas ilimitadas y desayuno.",
+      "popular": false,
       "priceAdult": 65,
       "features": [
         "1 Noche de hospedaje en cabaña privada",
@@ -372,95 +369,98 @@
         "Desayuno andino para 2 personas",
         "Bebida caliente de bienvenida"
       ],
-      "id": "pack-hospedaje-parejas"
+      "category": "Hospedaje",
+      "fixedForTwo": true,
+      "priceChild": 0,
+      "name": "Paquete Escapada Romántica (Hospedaje + Termas)"
     }
   ],
   "gallery": [
     {
-      "url": "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80",
-      "id": "gal-1",
       "title": "Piscinas Termales de Papallacta",
+      "id": "gal-1",
+      "url": "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80",
       "category": "Terjamanco 1"
     },
     {
+      "url": "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80",
       "category": "Terjamanco 2",
       "id": "gal-2",
-      "url": "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80",
       "title": "Pase Nocturno & Pool Party"
     },
     {
-      "title": "Columpio Extremo con Vista al Valle",
       "id": "gal-3",
       "category": "El Mirador Jamanco",
-      "url": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80"
+      "url": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
+      "title": "Columpio Extremo con Vista al Valle"
     },
     {
-      "category": "El Mirador Jamanco",
       "title": "Paseos en Bote & Laguna",
       "url": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
-      "id": "gal-4"
+      "id": "gal-4",
+      "category": "El Mirador Jamanco"
     },
     {
-      "title": "Cabañas de Hospedaje Campestre",
+      "category": "Alojamiento Jamanco",
       "url": "https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=800&q=80",
-      "id": "gal-5",
-      "category": "Alojamiento Jamanco"
+      "title": "Cabañas de Hospedaje Campestre",
+      "id": "gal-5"
     },
     {
-      "url": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
-      "category": "Restaurante Jamanco",
       "title": "Plato de Trucha Típica de Papallacta",
-      "id": "gal-6"
+      "url": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
+      "id": "gal-6",
+      "category": "Restaurante Jamanco"
     }
   ],
   "reviews": [
     {
-      "name": "Esteban & Sofia Paredes",
-      "role": "Visitantes de Quito",
+      "id": "rev-1",
       "rating": 5,
+      "name": "Esteban & Sofia Paredes",
       "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80",
       "date": "Hace 1 semana (Facebook Review)",
-      "id": "rev-1",
-      "comment": "Termales Jamanco es nuestro lugar favorito para escapar del frío de Quito los fines de semana. Terjamanco 2 en la noche con las luces y el vapor es espectacular. ¡Y el columpio del mirador te deja sin aliento!"
+      "comment": "Termales Jamanco es nuestro lugar favorito para escapar del frío de Quito los fines de semana. Terjamanco 2 en la noche con las luces y el vapor es espectacular. ¡Y el columpio del mirador te deja sin aliento!",
+      "role": "Visitantes de Quito"
     },
     {
       "rating": 5,
-      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
-      "name": "Ing. Roberto Salazar",
-      "id": "rev-2",
-      "role": "Turista de Cumbayá",
       "date": "Hace 3 semanas (Facebook Review)",
-      "comment": "Las aguas de Jamanco están realmente calientes y alivian cualquier dolor muscular. Almorzamos una trucha frita deliciosa en el restaurante y luego fuimos a los botes en el mirador. 100% recomendado."
+      "role": "Turista de Cumbayá",
+      "comment": "Las aguas de Jamanco están realmente calientes y alivian cualquier dolor muscular. Almorzamos una trucha frita deliciosa en el restaurante y luego fuimos a los botes en el mirador. 100% recomendado.",
+      "id": "rev-2",
+      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
+      "name": "Ing. Roberto Salazar"
     },
     {
-      "name": "Gabriela Morales",
-      "role": "Viajera Ecoturismo",
-      "rating": 5,
-      "date": "Hace 1 mes (Facebook Review)",
       "avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80",
+      "name": "Gabriela Morales",
+      "id": "rev-3",
+      "rating": 5,
       "comment": "Excelente atención de todo el personal de Jamanco. Las cabañas son muy cómodas y poder meterte a la piscina caliente de noche antes de dormir no tiene precio. Además el barro volcánico que compré me dejó la piel hermosa.",
-      "id": "rev-3"
+      "role": "Viajera Ecoturismo",
+      "date": "Hace 1 mes (Facebook Review)"
     }
   ],
   "faqs": [
     {
-      "id": "faq-1",
       "question": "¿Dónde queda exactamente Termales Jamanco y cómo llegar desde Quito?",
+      "id": "faq-1",
       "answer": "Termales Jamanco está ubicado en Papallacta (Cantón Quijos, Napo), a solo 45 km de Quito (aproximadamente a 1 hora pasando el redondel de Pifo por la vía asfaltada Quito - Baeza). Puedes llegar fácilmente en auto particular, taxi o en cualquier bus interprovincial que vaya hacia el Oriente."
     },
     {
-      "question": "¿Cuáles son las diferencias entre Terjamanco 1, Terjamanco 2 y El Mirador?",
+      "id": "faq-2",
       "answer": "• Terjamanco 1: Cuenta con piscinas familiares, baño turco natural, restaurante de truchas y habitaciones de hospedaje (abierto de 06:00 a 19:30).\n• Terjamanco 2: Es el área moderna donde se realizan los pases nocturnos y pool parties hasta las 23:00 PM con fogatas y música.\n• El Mirador Jamanco: Es el área de aventura alta donde encuentras el columpio extremo, paseos en bote, pesca deportiva y vistas 360° (abierto fines de semana y feriados de 06:00 a 17:00).",
-      "id": "faq-2"
+      "question": "¿Cuáles son las diferencias entre Terjamanco 1, Terjamanco 2 y El Mirador?"
     },
     {
-      "question": "¿A qué temperatura está el agua termal?",
       "answer": "El agua nace de manantiales volcánicos a temperaturas de 37°C a 44°C. Contamos con piscinas de temperatura templada y pozas bien calientes para relajación profunda y terapia muscular.",
+      "question": "¿A qué temperatura está el agua termal?",
       "id": "faq-3"
     },
     {
-      "answer": "Traje de baño, gorro de baño, sandalias, toalla y ropa abrigada para cuando salgas de las piscinas (el clima de Papallacta es de páramo fresco). En nuestras instalaciones también alquilamos y vendemos toallas, gorros y artículos termales.",
       "id": "faq-4",
+      "answer": "Traje de baño, gorro de baño, sandalias, toalla y ropa abrigada para cuando salgas de las piscinas (el clima de Papallacta es de páramo fresco). En nuestras instalaciones también alquilamos y vendemos toallas, gorros y artículos termales.",
       "question": "¿Qué debo llevar para mi visita?"
     },
     {
@@ -472,47 +472,47 @@
   "adminSettings": {
     "username": "admin",
     "passwordHash": "jamanco2025",
-    "lastLogin": "2026-09-23T14:31:22.378Z"
+    "lastLogin": "2026-09-23T17:30:08.184Z"
   },
   "soundSettings": {
-    "autoplayOnInteract": true,
     "defaultVolume": 0.4,
     "enabled": true,
+    "activeTrackId": "sound-water-termal",
+    "autoplayOnInteract": true,
     "tracks": [
       {
+        "id": "sound-water-termal",
         "isPreset": true,
         "description": "Sonido envolvente y relajante de agua geotermal fluyendo desde las vertientes naturales de Papallacta.",
-        "url": "/sounds/manantial_jamanco.wav",
         "title": "Manantial Geotermal Jamanco",
         "category": "Agua Termal",
-        "id": "sound-water-termal"
+        "url": "/sounds/manantial_jamanco.wav"
       },
       {
-        "category": "Cascadas",
-        "title": "Cascadas & Río Papallacta",
-        "description": "Corriente viva de río andino y pequeñas caídas de agua pura del páramo.",
         "id": "sound-water-cascada",
         "url": "/sounds/cascada_papallacta.wav",
+        "description": "Corriente viva de río andino y pequeñas caídas de agua pura del páramo.",
+        "category": "Cascadas",
+        "title": "Cascadas & Río Papallacta",
         "isPreset": true
       },
       {
         "isPreset": true,
-        "title": "Pozas Termales & Hidromasaje",
         "description": "Oleaje suave y relajante de las piscinas geotermales de Terjamanco.",
-        "category": "Agua Termal",
+        "url": "/sounds/pozas_termales.wav",
         "id": "sound-water-pozas",
-        "url": "/sounds/pozas_termales.wav"
+        "category": "Agua Termal",
+        "title": "Pozas Termales & Hidromasaje"
       },
       {
-        "category": "Lluvia & Clima",
-        "url": "/sounds/lluvia_paramo.wav",
-        "title": "Lluvia Serena del Páramo",
-        "id": "sound-lluvia-paramo",
         "isPreset": true,
-        "description": "Lluvia relajante andina mientras te sumerges en el calor de las aguas termales."
+        "title": "Lluvia Serena del Páramo",
+        "description": "Lluvia relajante andina mientras te sumerges en el calor de las aguas termales.",
+        "url": "/sounds/lluvia_paramo.wav",
+        "id": "sound-lluvia-paramo",
+        "category": "Lluvia & Clima"
       }
-    ],
-    "activeTrackId": "sound-water-termal"
+    ]
   },
-  "lastUpdated": "2026-09-23T14:31:43.305Z"
+  "lastUpdated": "2026-09-23T18:00:10.524Z"
 }
