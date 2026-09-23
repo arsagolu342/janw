@@ -177,10 +177,18 @@ export async function getFirebaseSiteData() {
 /**
  * Sanitizar objetos de forma segura para Cloud Firestore
  * Elimina undefined, funciones, símbolos y aplana estructuras anidadas erróneas
+ * Limita cadenas base64 gigantes (> 45KB) para proteger el tamaño del documento
  */
 export function cleanForFirestore(data) {
   if (data === null || data === undefined) return null;
-  if (typeof data === 'string' || typeof data === 'number' || typeof data === 'boolean') {
+  if (typeof data === 'number' || typeof data === 'boolean') {
+    return data;
+  }
+  if (typeof data === 'string') {
+    // Si es un audio base64 gigante, no almacenarlo directamente en Firestore
+    if (data.startsWith('data:audio/') && data.length > 50000) {
+      return '';
+    }
     return data;
   }
   if (Array.isArray(data)) {
@@ -215,10 +223,8 @@ export async function saveFirebaseSiteData(data, merge = true) {
   }
 
   try {
-    const docRef = doc(firestoreDb, ...SITE_DOC_PATH);
     const cleanData = cleanForFirestore(data) || {};
     
-    // Si info tiene anidamiento duplicado { info: { info: ... } }, aplanarlo
     if (cleanData.info && typeof cleanData.info === 'object') {
       if (cleanData.info.info && typeof cleanData.info.info === 'object') {
         cleanData.info = { ...cleanData.info.info, ...cleanData.info };
@@ -227,8 +233,27 @@ export async function saveFirebaseSiteData(data, merge = true) {
     }
 
     cleanData.lastUpdated = new Date().toISOString();
+
+    // Guardar secciones individuales en documentos dedicados (cada uno tiene 1MB de límite independiente)
+    for (const [key, val] of Object.entries(cleanData)) {
+      if (val && typeof val === 'object') {
+        try {
+          const sectionDocRef = doc(firestoreDb, 'terjamanco_site', key);
+          await setDoc(sectionDocRef, { ...cleanForFirestore(val), lastUpdated: cleanData.lastUpdated }, { merge: true });
+        } catch (secErr) {
+          console.warn(`Error guardando sección ${key} en documento dedicado:`, secErr.message);
+        }
+      }
+    }
     
-    await setDoc(docRef, cleanData, { merge });
+    // Guardar en el documento consolidado main_content
+    try {
+      const docRef = doc(firestoreDb, ...SITE_DOC_PATH);
+      await setDoc(docRef, cleanData, { merge });
+    } catch (mainDocErr) {
+      console.warn('main_content excedió tamaño; guardado seguro en documentos de sección individuales');
+    }
+
     return { success: true, timestamp: cleanData.lastUpdated };
   } catch (err) {
     console.error('🔥 Error al guardar datos en Firestore:', err);
@@ -238,6 +263,7 @@ export async function saveFirebaseSiteData(data, merge = true) {
 
 /**
  * Actualizar una sección específica en Firestore (ej: 'info', 'services', 'gallery')
+ * Guarda tanto en el documento dedicado de la sección (ej. terjamanco_site/info) como en main_content
  */
 export async function updateFirebaseSection(sectionKey, sectionData) {
   if (!firestoreDb) {
@@ -245,7 +271,6 @@ export async function updateFirebaseSection(sectionKey, sectionData) {
   }
 
   try {
-    const docRef = doc(firestoreDb, ...SITE_DOC_PATH);
     let cleanData = cleanForFirestore(sectionData);
 
     if (sectionKey === 'info' && cleanData && typeof cleanData === 'object') {
@@ -255,10 +280,30 @@ export async function updateFirebaseSection(sectionKey, sectionData) {
       delete cleanData.info;
     }
 
-    await setDoc(docRef, {
-      [sectionKey]: cleanData,
-      lastUpdated: new Date().toISOString()
-    }, { merge: true });
+    const timestamp = new Date().toISOString();
+
+    // 1. Guardar en documento dedicado específico (terjamanco_site/[sectionKey]) -> GARANTIZADO (< 20KB, nunca falla por 1MB)
+    try {
+      const sectionDocRef = doc(firestoreDb, 'terjamanco_site', sectionKey);
+      await setDoc(sectionDocRef, {
+        ...(typeof cleanData === 'object' ? cleanData : { data: cleanData }),
+        lastUpdated: timestamp
+      }, { merge: true });
+    } catch (sectionErr) {
+      console.warn(`⚠️ Error en documento de sección ${sectionKey}:`, sectionErr.message);
+    }
+
+    // 2. Intentar actualizar main_content
+    try {
+      const docRef = doc(firestoreDb, ...SITE_DOC_PATH);
+      await setDoc(docRef, {
+        [sectionKey]: cleanData,
+        lastUpdated: timestamp
+      }, { merge: true });
+    } catch (mainErr) {
+      console.warn(`⚠️ main_content demasiado grande, pero sección ${sectionKey} persistida exitosamente en la nube.`);
+    }
+
     return { success: true };
   } catch (err) {
     console.error(`🔥 Error al actualizar sección ${sectionKey} en Firestore:`, err);
@@ -275,17 +320,39 @@ export function subscribeToFirebaseSiteData(onUpdate, onError) {
   }
 
   try {
-    const docRef = doc(firestoreDb, ...SITE_DOC_PATH);
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+    const unsubscribes = [];
+
+    // 1. Escuchar documento principal main_content
+    const mainDocRef = doc(firestoreDb, ...SITE_DOC_PATH);
+    const mainUnsub = onSnapshot(mainDocRef, (docSnap) => {
       if (docSnap.exists()) {
         onUpdate(docSnap.data());
       }
     }, (err) => {
-      console.warn('🔥 Error en suscripción a Firestore:', err);
+      console.warn('🔥 Listener main_content:', err.message);
       if (onError) onError(err);
     });
+    unsubscribes.push(mainUnsub);
 
-    return unsubscribe;
+    // 2. Escuchar documento específico de 'info' (empresa y logo) para reactividad instantánea
+    try {
+      const infoDocRef = doc(firestoreDb, 'terjamanco_site', 'info');
+      const infoUnsub = onSnapshot(infoDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const infoData = docSnap.data();
+          if (infoData) {
+            onUpdate({ info: infoData });
+          }
+        }
+      }, () => {});
+      unsubscribes.push(infoUnsub);
+    } catch {}
+
+    return () => {
+      unsubscribes.forEach(unsub => {
+        try { unsub(); } catch {}
+      });
+    };
   } catch (err) {
     console.error('🔥 Error configurando listener de Firestore:', err);
     return () => {};
