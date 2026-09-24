@@ -98,18 +98,7 @@ export default function ThermalBenefits() {
               justifyContent: 'flex-end',
               background: '#041d27'
             }}>
-              <img 
-                src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=900&q=80" 
-                alt="Terapia y relax geotermal en Jamanco"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover'
-                }}
-              />
+             
 
               {/* Dark gradient overlay for text legibility */}
               <div style={{
