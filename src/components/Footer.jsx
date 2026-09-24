@@ -117,37 +117,6 @@ export default function Footer({ onOpenBookingModal, onOpenAdmin }) {
               </li>
             </ul>
           </div>
-
-          {/* Fast Booking CTA */}
-          <div>
-            <h4 style={{ fontSize: '1.05rem', color: 'var(--text-light)', marginBottom: '1.25rem' }}>
-              ¡Visítanos este Fin de Semana!
-            </h4>
-            <div style={{
-              background: 'var(--card-inner-bg)',
-              border: '1px solid var(--border-glass)',
-              borderRadius: '12px',
-              padding: '1.1rem',
-              marginBottom: '1.25rem'
-            }}>
-              <div style={{ fontSize: '0.82rem', color: 'var(--accent-teal)', fontWeight: '700', textTransform: 'uppercase' }}>
-                Abierto Todos los Días
-              </div>
-              <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', marginTop: '0.3rem', fontWeight: '600' }}>
-                • Terjamanco 1: 06:00 - 19:30<br/>
-                • Terjamanco 2: 06:00 - 23:00<br/>
-                • Mirador: 06:00 - 17:00
-              </div>
-            </div>
-
-            <button
-              onClick={onOpenBookingModal}
-              className="btn btn-primary btn-sm"
-              style={{ width: '100%' }}
-            >
-              Consultar / Reservar
-            </button>
-          </div>
         </div>
 
         {/* Bottom copyright & Admin button */}
