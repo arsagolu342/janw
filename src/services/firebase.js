@@ -1,6 +1,8 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getFirestore,
+  collection,
+  getDocs,
   doc,
   getDoc,
   setDoc,
@@ -147,12 +149,49 @@ export { firestoreDb, firebaseStorage, firebaseAuth };
 
 /**
  * Documento principal de contenido en Cloud Firestore:
- * Colección: 'terjamanco_site' / Documento: 'main_content'
+/**
+ * Documento principal de contenido en Cloud Firestore:
+ * Colección: 'terjamanco_site'
  */
-const SITE_DOC_PATH = ['terjamanco_site', 'main_content'];
+const SITE_COLLECTION = 'terjamanco_site';
+const SITE_DOC_PATH = [SITE_COLLECTION, 'main_content'];
 
 /**
- * Obtener todos los datos del sitio desde Cloud Firestore
+ * Helper para extraer datos de una sección independientemente del formato de almacenamiento
+ */
+export function extractSectionData(raw) {
+  if (!raw || typeof raw !== 'object') return raw;
+
+  // Si tiene la propiedad 'items' que es un arreglo
+  if (Array.isArray(raw.items)) {
+    return raw.items;
+  }
+  // Si tiene la propiedad 'list' que es un arreglo
+  if (Array.isArray(raw.list)) {
+    return raw.list;
+  }
+  // Si tiene la propiedad 'data' que es un arreglo
+  if (Array.isArray(raw.data)) {
+    return raw.data;
+  }
+
+  // Si es un objeto cuyas claves son índices numéricos ('0', '1', '2'...)
+  const keys = Object.keys(raw).filter(k => k !== 'lastUpdated');
+  const isNumericArray = keys.length > 0 && keys.every(k => /^\d+$/.test(k));
+  if (isNumericArray) {
+    return keys
+      .sort((a, b) => Number(a) - Number(b))
+      .map(k => raw[k]);
+  }
+
+  // Si es un objeto normal (info, hero, soundSettings, etc.)
+  const cleanObj = { ...raw };
+  delete cleanObj.lastUpdated;
+  return cleanObj;
+}
+
+/**
+ * Obtener todos los datos del sitio desde Cloud Firestore leyendo todos los documentos de la colección
  */
 export async function getFirebaseSiteData() {
   if (!firestoreDb) {
@@ -160,14 +199,31 @@ export async function getFirebaseSiteData() {
   }
 
   try {
-    const docRef = doc(firestoreDb, ...SITE_DOC_PATH);
-    const docSnap = await getDoc(docRef);
+    const colRef = collection(firestoreDb, SITE_COLLECTION);
+    const snapshot = await getDocs(colRef);
 
-    if (docSnap.exists()) {
-      return docSnap.data();
-    } else {
+    if (snapshot.empty) {
       return null;
     }
+
+    const fullData = {};
+    snapshot.forEach((docSnap) => {
+      const docId = docSnap.id;
+      const raw = docSnap.data();
+      if (!raw) return;
+
+      if (docId === 'main_content') {
+        for (const [key, val] of Object.entries(raw)) {
+          if (fullData[key] === undefined && val !== undefined) {
+            fullData[key] = val;
+          }
+        }
+      } else {
+        fullData[docId] = extractSectionData(raw);
+      }
+    });
+
+    return Object.keys(fullData).length > 0 ? fullData : null;
   } catch (err) {
     console.error('🔥 Error al obtener datos desde Firestore:', err);
     throw err;
@@ -176,8 +232,7 @@ export async function getFirebaseSiteData() {
 
 /**
  * Sanitizar objetos de forma segura para Cloud Firestore
- * Elimina undefined, funciones, símbolos y aplana estructuras anidadas erróneas
- * Limita cadenas base64 gigantes (> 45KB) para proteger el tamaño del documento
+ * Elimina undefined, funciones, símbolos y limita cadenas gigantes
  */
 export function cleanForFirestore(data) {
   if (data === null || data === undefined) return null;
@@ -215,7 +270,7 @@ export function cleanForFirestore(data) {
 }
 
 /**
- * Guardar o actualizar datos completos o parciales en Firestore
+ * Guardar o actualizar datos completos en Firestore divididos en documentos dedicados por sección
  */
 export async function saveFirebaseSiteData(data, merge = true) {
   if (!firestoreDb) {
@@ -232,29 +287,30 @@ export async function saveFirebaseSiteData(data, merge = true) {
       }
     }
 
-    cleanData.lastUpdated = new Date().toISOString();
+    const timestamp = new Date().toISOString();
 
-    // Guardar secciones individuales en documentos dedicados (cada uno tiene 1MB de límite independiente)
+    // Guardar cada sección en su propio documento individual (cada uno con límite de 1MB independiente)
     for (const [key, val] of Object.entries(cleanData)) {
-      if (val && typeof val === 'object') {
+      if (key === 'lastUpdated') continue;
+      if (val !== undefined && val !== null) {
         try {
-          const sectionDocRef = doc(firestoreDb, 'terjamanco_site', key);
-          await setDoc(sectionDocRef, { ...cleanForFirestore(val), lastUpdated: cleanData.lastUpdated }, { merge: true });
+          const sectionDocRef = doc(firestoreDb, SITE_COLLECTION, key);
+          let docPayload;
+          if (Array.isArray(val)) {
+            docPayload = { items: val, lastUpdated: timestamp };
+          } else if (typeof val === 'object') {
+            docPayload = { ...val, lastUpdated: timestamp };
+          } else {
+            docPayload = { value: val, lastUpdated: timestamp };
+          }
+          await setDoc(sectionDocRef, docPayload);
         } catch (secErr) {
           console.warn(`Error guardando sección ${key} en documento dedicado:`, secErr.message);
         }
       }
     }
-    
-    // Guardar en el documento consolidado main_content
-    try {
-      const docRef = doc(firestoreDb, ...SITE_DOC_PATH);
-      await setDoc(docRef, cleanData, { merge });
-    } catch (mainDocErr) {
-      console.warn('main_content excedió tamaño; guardado seguro en documentos de sección individuales');
-    }
 
-    return { success: true, timestamp: cleanData.lastUpdated };
+    return { success: true, timestamp };
   } catch (err) {
     console.error('🔥 Error al guardar datos en Firestore:', err);
     throw err;
@@ -262,8 +318,8 @@ export async function saveFirebaseSiteData(data, merge = true) {
 }
 
 /**
- * Actualizar una sección específica en Firestore (ej: 'info', 'services', 'gallery')
- * Guarda tanto en el documento dedicado de la sección (ej. terjamanco_site/info) como en main_content
+ * Actualizar una sección específica en Firestore (ej: 'zones', 'info', 'services', 'gallery')
+ * Guarda en el documento dedicado terjamanco_site/[sectionKey]
  */
 export async function updateFirebaseSection(sectionKey, sectionData) {
   if (!firestoreDb) {
@@ -282,29 +338,20 @@ export async function updateFirebaseSection(sectionKey, sectionData) {
 
     const timestamp = new Date().toISOString();
 
-    // 1. Guardar en documento dedicado específico (terjamanco_site/[sectionKey]) -> GARANTIZADO (< 20KB, nunca falla por 1MB)
-    try {
-      const sectionDocRef = doc(firestoreDb, 'terjamanco_site', sectionKey);
-      await setDoc(sectionDocRef, {
-        ...(typeof cleanData === 'object' ? cleanData : { data: cleanData }),
-        lastUpdated: timestamp
-      }, { merge: true });
-    } catch (sectionErr) {
-      console.warn(`⚠️ Error en documento de sección ${sectionKey}:`, sectionErr.message);
+    // Guardar en documento dedicado específico (terjamanco_site/[sectionKey]) -> GARANTIZADO (< 30KB)
+    const sectionDocRef = doc(firestoreDb, SITE_COLLECTION, sectionKey);
+    let docPayload;
+    if (Array.isArray(cleanData)) {
+      docPayload = { items: cleanData, lastUpdated: timestamp };
+    } else if (typeof cleanData === 'object' && cleanData !== null) {
+      docPayload = { ...cleanData, lastUpdated: timestamp };
+    } else {
+      docPayload = { value: cleanData, lastUpdated: timestamp };
     }
 
-    // 2. Intentar actualizar main_content
-    try {
-      const docRef = doc(firestoreDb, ...SITE_DOC_PATH);
-      await setDoc(docRef, {
-        [sectionKey]: cleanData,
-        lastUpdated: timestamp
-      }, { merge: true });
-    } catch (mainErr) {
-      console.warn(`⚠️ main_content demasiado grande, pero sección ${sectionKey} persistida exitosamente en la nube.`);
-    }
+    await setDoc(sectionDocRef, docPayload);
 
-    return { success: true };
+    return { success: true, timestamp };
   } catch (err) {
     console.error(`🔥 Error al actualizar sección ${sectionKey} en Firestore:`, err);
     throw err;
@@ -312,7 +359,7 @@ export async function updateFirebaseSection(sectionKey, sectionData) {
 }
 
 /**
- * Suscribirse a cambios en tiempo real desde Firestore
+ * Suscribirse a cambios en tiempo real en toda la colección de secciones desde Firestore
  */
 export function subscribeToFirebaseSiteData(onUpdate, onError) {
   if (!firestoreDb) {
@@ -320,39 +367,28 @@ export function subscribeToFirebaseSiteData(onUpdate, onError) {
   }
 
   try {
-    const unsubscribes = [];
+    const colRef = collection(firestoreDb, SITE_COLLECTION);
+    const unsub = onSnapshot(colRef, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added' || change.type === 'modified') {
+          const docId = change.doc.id;
+          const raw = change.doc.data();
+          if (!raw) return;
 
-    // 1. Escuchar documento principal main_content
-    const mainDocRef = doc(firestoreDb, ...SITE_DOC_PATH);
-    const mainUnsub = onSnapshot(mainDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        onUpdate(docSnap.data());
-      }
-    }, (err) => {
-      console.warn('🔥 Listener main_content:', err.message);
-      if (onError) onError(err);
-    });
-    unsubscribes.push(mainUnsub);
-
-    // 2. Escuchar documento específico de 'info' (empresa y logo) para reactividad instantánea
-    try {
-      const infoDocRef = doc(firestoreDb, 'terjamanco_site', 'info');
-      const infoUnsub = onSnapshot(infoDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const infoData = docSnap.data();
-          if (infoData) {
-            onUpdate({ info: infoData });
+          if (docId === 'main_content') {
+            onUpdate(raw);
+          } else {
+            const extracted = extractSectionData(raw);
+            onUpdate({ [docId]: extracted });
           }
         }
-      }, () => {});
-      unsubscribes.push(infoUnsub);
-    } catch {}
-
-    return () => {
-      unsubscribes.forEach(unsub => {
-        try { unsub(); } catch {}
       });
-    };
+    }, (err) => {
+      console.warn('🔥 Listener Firestore collection error:', err.message);
+      if (onError) onError(err);
+    });
+
+    return unsub;
   } catch (err) {
     console.error('🔥 Error configurando listener de Firestore:', err);
     return () => {};

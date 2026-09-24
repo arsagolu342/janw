@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Check, AlertCircle, MapPin, X } from 'lucide-react';
 import { useSiteData } from '../../context/SiteDataContext';
 import ImageUploader from '../components/ImageUploader';
@@ -17,6 +17,17 @@ export default function ZonesTab() {
     zonesDescription: info?.zonesDescription || 'Descubre las diferentes experiencias que tenemos preparadas para ti en Papallacta: relajación hidrotermal, noches de fiesta bajo las estrellas y actividades extremas en el mirador.'
   });
   const [savingHeader, setSavingHeader] = useState(false);
+
+  useEffect(() => {
+    if (info) {
+      setHeaderData(prev => ({
+        ...prev,
+        zonesSubtitle: info.zonesSubtitle ?? prev.zonesSubtitle,
+        zonesTitle: info.zonesTitle ?? prev.zonesTitle,
+        zonesDescription: info.zonesDescription ?? prev.zonesDescription
+      }));
+    }
+  }, [info]);
 
   const initialZone = {
     id: `zone-${Date.now()}`,

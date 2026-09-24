@@ -159,18 +159,29 @@ export function SiteDataProvider({ children }) {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
 
-  // Timestamp para proteger cambios recién guardados por el admin contra snapshots antiguos
-  const lastLocalUpdateRef = React.useRef({ info: 0, hero: 0 });
+  // Timestamps para proteger cambios recién guardados por el admin contra snapshots antiguos
+  const lastLocalUpdateRef = React.useRef({
+    info: 0,
+    hero: 0,
+    minerals: 0,
+    zones: 0,
+    services: 0,
+    products: 0,
+    packages: 0,
+    gallery: 0,
+    reviews: 0,
+    faqs: 0,
+    soundSettings: 0
+  });
 
   // Aplicar datos entrantes de forma atómica
   const applyIncomingData = useCallback((data) => {
     if (!data) return;
 
-    // Verificar si se acaba de hacer una edición local en los últimos 20 segundos
     const now = Date.now();
-    const isRecentInfoEdit = (now - (lastLocalUpdateRef.current.info || 0)) < 20000;
+    const isRecent = (key) => (now - (lastLocalUpdateRef.current[key] || 0)) < 15000;
 
-    if (data.info && !isRecentInfoEdit) {
+    if (data.info && !isRecent('info')) {
       let cleanInfo = data.info;
       if (cleanInfo.info && typeof cleanInfo.info === 'object' && !cleanInfo.name) {
         cleanInfo = cleanInfo.info;
@@ -182,16 +193,16 @@ export function SiteDataProvider({ children }) {
       setInfo(cleanInfo);
       saveLocal('info', cleanInfo);
     }
-    if (data.hero) { setHero(data.hero); saveLocal('hero', data.hero); }
-    if (data.minerals) { setMinerals(data.minerals); saveLocal('minerals', data.minerals); }
-    if (data.zones) { setZones(data.zones); saveLocal('zones', data.zones); }
-    if (data.services) { setServices(data.services); saveLocal('services', data.services); }
-    if (data.products) { setProducts(data.products); saveLocal('products', data.products); }
-    if (data.packages) { setPackages(data.packages); saveLocal('packages', data.packages); }
-    if (data.gallery) { setGallery(data.gallery); saveLocal('gallery', data.gallery); }
-    if (data.reviews) { setReviews(data.reviews); saveLocal('reviews', data.reviews); }
-    if (data.faqs) { setFaqs(data.faqs); saveLocal('faqs', data.faqs); }
-    if (data.soundSettings) { setSoundSettings(data.soundSettings); saveLocal('soundSettings', data.soundSettings); }
+    if (data.hero && !isRecent('hero')) { setHero(data.hero); saveLocal('hero', data.hero); }
+    if (data.minerals && !isRecent('minerals')) { setMinerals(data.minerals); saveLocal('minerals', data.minerals); }
+    if (data.zones && !isRecent('zones')) { setZones(data.zones); saveLocal('zones', data.zones); }
+    if (data.services && !isRecent('services')) { setServices(data.services); saveLocal('services', data.services); }
+    if (data.products && !isRecent('products')) { setProducts(data.products); saveLocal('products', data.products); }
+    if (data.packages && !isRecent('packages')) { setPackages(data.packages); saveLocal('packages', data.packages); }
+    if (data.gallery && !isRecent('gallery')) { setGallery(data.gallery); saveLocal('gallery', data.gallery); }
+    if (data.reviews && !isRecent('reviews')) { setReviews(data.reviews); saveLocal('reviews', data.reviews); }
+    if (data.faqs && !isRecent('faqs')) { setFaqs(data.faqs); saveLocal('faqs', data.faqs); }
+    if (data.soundSettings && !isRecent('soundSettings')) { setSoundSettings(data.soundSettings); saveLocal('soundSettings', data.soundSettings); }
     setLastSync(new Date());
   }, []);
 
@@ -416,6 +427,7 @@ export function SiteDataProvider({ children }) {
   };
 
   const updateHero = async (newHero) => {
+    lastLocalUpdateRef.current.hero = Date.now();
     const merged = { ...hero, ...newHero };
     setHero(merged);
     saveLocal('hero', merged);
@@ -428,6 +440,7 @@ export function SiteDataProvider({ children }) {
   };
 
   const updateMinerals = async (newMinerals) => {
+    lastLocalUpdateRef.current.minerals = Date.now();
     setMinerals(newMinerals);
     saveLocal('minerals', newMinerals);
     try {
@@ -440,6 +453,7 @@ export function SiteDataProvider({ children }) {
 
   // ZONES
   const saveZone = async (zoneData, isNew = false) => {
+    lastLocalUpdateRef.current.zones = Date.now();
     let savedZone = zoneData;
     if (isNew && !savedZone.id) {
       savedZone = { ...savedZone, id: `zone-${Date.now()}` };
@@ -462,6 +476,7 @@ export function SiteDataProvider({ children }) {
   };
 
   const deleteZone = async (id) => {
+    lastLocalUpdateRef.current.zones = Date.now();
     const updated = zones.filter(z => z.id !== id);
     setZones(updated);
     saveLocal('zones', updated);
@@ -474,6 +489,7 @@ export function SiteDataProvider({ children }) {
 
   // SERVICES
   const saveService = async (serviceData, isNew = false) => {
+    lastLocalUpdateRef.current.services = Date.now();
     let savedService = serviceData;
     if (isNew && !savedService.id) {
       savedService = { ...savedService, id: `svc-${Date.now()}` };
@@ -496,6 +512,7 @@ export function SiteDataProvider({ children }) {
   };
 
   const deleteService = async (id) => {
+    lastLocalUpdateRef.current.services = Date.now();
     const updated = services.filter(s => s.id !== id);
     setServices(updated);
     saveLocal('services', updated);
@@ -508,6 +525,7 @@ export function SiteDataProvider({ children }) {
 
   // PRODUCTS
   const saveProduct = async (productData, isNew = false) => {
+    lastLocalUpdateRef.current.products = Date.now();
     let savedProduct = productData;
     if (isNew && !savedProduct.id) {
       savedProduct = { ...savedProduct, id: `prod-${Date.now()}` };
@@ -530,6 +548,7 @@ export function SiteDataProvider({ children }) {
   };
 
   const deleteProduct = async (id) => {
+    lastLocalUpdateRef.current.products = Date.now();
     const updated = products.filter(p => p.id !== id);
     setProducts(updated);
     saveLocal('products', updated);
@@ -542,6 +561,7 @@ export function SiteDataProvider({ children }) {
 
   // PACKAGES
   const savePackage = async (pkgData, isNew = false) => {
+    lastLocalUpdateRef.current.packages = Date.now();
     let savedPackage = pkgData;
     if (isNew && !savedPackage.id) {
       savedPackage = { ...savedPackage, id: `pack-${Date.now()}` };
@@ -564,6 +584,7 @@ export function SiteDataProvider({ children }) {
   };
 
   const deletePackage = async (id) => {
+    lastLocalUpdateRef.current.packages = Date.now();
     const updated = packages.filter(p => p.id !== id);
     setPackages(updated);
     saveLocal('packages', updated);
@@ -576,6 +597,7 @@ export function SiteDataProvider({ children }) {
 
   // GALLERY
   const addGalleryPhoto = async (photoData) => {
+    lastLocalUpdateRef.current.gallery = Date.now();
     const photo = { ...photoData, id: photoData.id || `gal-${Date.now()}` };
     const updated = [photo, ...gallery];
     setGallery(updated);
@@ -590,6 +612,7 @@ export function SiteDataProvider({ children }) {
   };
 
   const deleteGalleryPhoto = async (id) => {
+    lastLocalUpdateRef.current.gallery = Date.now();
     const updated = gallery.filter(g => g.id !== id);
     setGallery(updated);
     saveLocal('gallery', updated);
@@ -602,6 +625,7 @@ export function SiteDataProvider({ children }) {
 
   // REVIEWS
   const saveReview = async (reviewData, isNew = false) => {
+    lastLocalUpdateRef.current.reviews = Date.now();
     let savedReview = reviewData;
     if (isNew && !savedReview.id) {
       savedReview = { ...savedReview, id: `rev-${Date.now()}` };
@@ -624,6 +648,7 @@ export function SiteDataProvider({ children }) {
   };
 
   const deleteReview = async (id) => {
+    lastLocalUpdateRef.current.reviews = Date.now();
     const updated = reviews.filter(r => String(r.id) !== String(id));
     setReviews(updated);
     saveLocal('reviews', updated);
@@ -636,6 +661,7 @@ export function SiteDataProvider({ children }) {
 
   // FAQS
   const saveFaq = async (faqData, isNew = false) => {
+    lastLocalUpdateRef.current.faqs = Date.now();
     let savedFaq = faqData;
     if (isNew && !savedFaq.id) {
       savedFaq = { ...savedFaq, id: `faq-${Date.now()}` };
@@ -658,6 +684,7 @@ export function SiteDataProvider({ children }) {
   };
 
   const deleteFaq = async (id) => {
+    lastLocalUpdateRef.current.faqs = Date.now();
     const updated = faqs.filter(f => f.id !== id);
     setFaqs(updated);
     saveLocal('faqs', updated);
@@ -670,6 +697,7 @@ export function SiteDataProvider({ children }) {
 
   // AMBIENT SOUNDS
   const updateSoundSettings = async (newSettings) => {
+    lastLocalUpdateRef.current.soundSettings = Date.now();
     const merged = { ...soundSettings, ...newSettings };
     setSoundSettings(merged);
     saveLocal('soundSettings', merged);
@@ -683,6 +711,7 @@ export function SiteDataProvider({ children }) {
   };
 
   const setActiveSoundTrack = async (trackId) => {
+    lastLocalUpdateRef.current.soundSettings = Date.now();
     const merged = { ...soundSettings, activeTrackId: trackId };
     setSoundSettings(merged);
     saveLocal('soundSettings', merged);
@@ -696,6 +725,7 @@ export function SiteDataProvider({ children }) {
   };
 
   const addSoundTrack = async (trackData) => {
+    lastLocalUpdateRef.current.soundSettings = Date.now();
     const track = { ...trackData, id: trackData.id || `sound-${Date.now()}` };
     const merged = { ...soundSettings, tracks: [...(soundSettings.tracks || []), track] };
     setSoundSettings(merged);
@@ -710,6 +740,7 @@ export function SiteDataProvider({ children }) {
   };
 
   const deleteSoundTrack = async (id) => {
+    lastLocalUpdateRef.current.soundSettings = Date.now();
     const merged = { ...soundSettings, tracks: (soundSettings.tracks || []).filter(t => t.id !== id) };
     setSoundSettings(merged);
     saveLocal('soundSettings', merged);
