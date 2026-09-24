@@ -34,7 +34,7 @@ export default function MineralsTab() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-            Minerales & Propiedades Geotermales
+             Propiedades Geotermales
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
             Edita los 4 componentes minerales volcánicos destacados (Azufre, Magnesio, Calcio, Silicio) y sus beneficios en la salud.
