@@ -64,7 +64,7 @@ export default function ThermalBenefits() {
         {/* Section Master Header */}
         <div className="section-header" style={{ marginBottom: '2.5rem' }}>
           <span className="section-subtitle">Poder Curativo & Secreto Mineral</span>
-          <h2 className="section-title">El Secreto Mineral e Impacto en la Salud</h2>
+          <h2 className="section-title">El Secreto Mineral</h2>
           <p className="section-description">
             Nuestras aguas brotan de las entrañas volcánicas andinas cargadas de minerales terapéuticos que restauran tu cuerpo, alivian el estrés y renuevan tu piel en cada sesión.
           </p>
